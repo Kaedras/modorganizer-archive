@@ -1,32 +1,13 @@
 cmake_minimum_required(VERSION 3.16)
 
-find_package(7zip CONFIG REQUIRED)
-
 add_library(archive)
 
 set_target_properties(archive PROPERTIES CXX_STANDARD 20)
-target_link_libraries(archive PRIVATE 7zip::7zip)
+target_link_libraries(archive PRIVATE bit7z)
 
 target_sources(archive
 	PRIVATE
 		archive.cpp
-		extractcallback.cpp
-		extractcallback.h
-		fileio.cpp
-		fileio.h
-		formatter.h
-		inputstream.cpp
-		inputstream.h
-		instrument.h
-		interfaceguids.cpp
-		library.h
-		multioutputstream.cpp
-		multioutputstream.h
-		opencallback.cpp
-		opencallback.h
-		propertyvariant.cpp
-		propertyvariant.h
-		unknown_impl.h
 		version.rc
 	PUBLIC
 		FILE_SET HEADERS
@@ -50,6 +31,18 @@ if (MSVC)
 	)
 
 	set_target_properties(archive PROPERTIES VS_STARTUP_PROJECT archive)
+else()
+	# sets compiler threads to host core count
+	# NOTE: this could cause issues if distcc is used, although this project is too small to really benefit from it anyways
+	include(ProcessorCount)
+	ProcessorCount(HOST_PROC_COUNT)
+	# only set this variable if it does not exist to allow a user defined value
+	if (NOT CMAKE_BUILD_PARALLEL_LEVEL)
+		set(CMAKE_BUILD_PARALLEL_LEVEL ${HOST_PROC_COUNT})
+		message(STATUS "Setting CMAKE_BUILD_PARALLEL_LEVEL to ${HOST_PROC_COUNT}")
+	endif ()
+	target_compile_options(archive PRIVATE -Wall -Wextra -Wpedantic -fvisibility=hidden)
+	target_link_options(archive PRIVATE  $<$<CONFIG:RelWithDebInfo>:-flto>)
 endif()
 
 if (BUILD_STATIC)
@@ -61,7 +54,7 @@ endif()
 add_library(mo2::archive ALIAS archive)
 
 install(TARGETS archive EXPORT archiveTargets FILE_SET HEADERS)
-if (NOT BUILD_STATIC)
+if (NOT BUILD_STATIC AND WIN32)
 	install(FILES $<TARGET_PDB_FILE:archive> DESTINATION pdb OPTIONAL)
 endif()
 install(EXPORT archiveTargets
