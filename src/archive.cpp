@@ -33,7 +33,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 static std::filesystem::path LIB = "dlls/7zip.dll";
 static std::filesystem::path LIB_FALLBACK;
 #else
-static std::filesystem::path LIB = "lib/lib7zip.so";
+static std::filesystem::path LIB          = "lib/lib7zip.so";
 static std::filesystem::path LIB_FALLBACK = "/usr/lib64/p7zip/7z.so";
 #endif
 
@@ -45,18 +45,24 @@ class FileDataImpl : public FileData
   friend class Archive;
 
 public:
-  FileDataImpl(std::filesystem::path fileName, uint64_t size, uint64_t crc, bool isDirectory)
-      : m_FileName(std::move(fileName)), m_Size(size), m_CRC(crc), m_IsDirectory(isDirectory)
+  FileDataImpl(std::filesystem::path fileName, uint64_t size, uint64_t crc,
+               bool isDirectory)
+      : m_FileName(std::move(fileName)), m_Size(size), m_CRC(crc),
+        m_IsDirectory(isDirectory)
   {}
 
-  [[nodiscard]] std::filesystem::path getArchiveFilePath() const override { return m_FileName; }
+  [[nodiscard]] std::filesystem::path getArchiveFilePath() const override
+  {
+    return m_FileName;
+  }
   [[nodiscard]] uint64_t getSize() const override { return m_Size; }
 
   void addOutputFilePath(std::filesystem::path const& fileName) override
   {
     m_OutputFilePaths.push_back(fileName);
   }
-  [[nodiscard]] const std::vector<std::filesystem::path>& getOutputFilePaths() const override
+  [[nodiscard]] const std::vector<std::filesystem::path>&
+  getOutputFilePaths() const override
   {
     return m_OutputFilePaths;
   }
@@ -74,7 +80,6 @@ private:
   std::vector<std::filesystem::path> m_OutputFilePaths;
   bool m_IsDirectory;
 };
-
 
 /// represents the connection to one archive and provides common functionality
 class ArchiveImpl : public Archive
@@ -98,13 +103,15 @@ public:
   }
 
   bool open(std::filesystem::path const& archiveName,
-                    PasswordCallback passwordCallback) override;
+            PasswordCallback passwordCallback) override;
   void close() override;
-  [[nodiscard]] const std::vector<FileData*>& getFileList() const override { return m_FileList; }
+  [[nodiscard]] const std::vector<FileData*>& getFileList() const override
+  {
+    return m_FileList;
+  }
   bool extract(std::filesystem::path const& outputDirectory,
-                       ProgressCallback progressCallback,
-                       FileChangeCallback fileChangeCallback,
-                       ErrorCallback errorCallback) override;
+               ProgressCallback progressCallback, FileChangeCallback fileChangeCallback,
+               ErrorCallback errorCallback) override;
 
   void cancel() override;
 
@@ -114,12 +121,13 @@ private:
   void reportError(const native_string& message);
 
   // callback wrapper functions
-  bool progressCallbackWrapper(uint64_t current); // returns true if we should continue extracting, false otherwise
+  bool progressCallbackWrapper(uint64_t current);  // returns true if we should continue
+                                                   // extracting, false otherwise
   void fileChangeCallbackWrapper(const native_string& path);
   native_string passwordCallbackWrapper();
 
   bool m_Valid;
-  bool m_Nested; // if we got a nested archive, e.g. tar.gz
+  bool m_Nested;  // if we got a nested archive, e.g. tar.gz
   Error m_LastError;
   std::atomic<bool> m_shouldCancel = false;
 
@@ -141,24 +149,27 @@ private:
   native_string m_Password;
 };
 
-Archive::LogCallback ArchiveImpl::DefaultLogCallback([](LogLevel, native_string const&) {
-});
+Archive::LogCallback ArchiveImpl::DefaultLogCallback([](LogLevel,
+                                                        native_string const&) {});
 
 ArchiveImpl::ArchiveImpl()
-   : m_Valid(false), m_Nested(false), m_LastError(Error::ERROR_NONE), m_ArchivePtr(nullptr), m_ProgressType(Archive::ProgressType::EXTRACTION), m_Total(0), m_FileChangeType(FileChangeType::EXTRACTION_START)
+    : m_Valid(false), m_Nested(false), m_LastError(Error::ERROR_NONE),
+      m_ArchivePtr(nullptr), m_ProgressType(Archive::ProgressType::EXTRACTION),
+      m_Total(0), m_FileChangeType(FileChangeType::EXTRACTION_START)
 {
   // Reset the log callback:
   setLogCallback({});
 
-  // the default constructor would look for "7z.dll" on windows and "/usr/lib/p7zip/7z.so" on linux
+  // the default constructor would look for "7z.dll" on windows and
+  // "/usr/lib/p7zip/7z.so" on linux
   try {
     m_Library = new Bit7zLibrary(LIB);
-    m_Valid = true;
+    m_Valid   = true;
   } catch (const BitException& ex) {
     // try a second time using another library path
     try {
       m_Library = new Bit7zLibrary(LIB_FALLBACK);
-      m_Valid = true;
+      m_Valid   = true;
     } catch (const BitException& ex) {
       m_LogCallback(LogLevel::Error, std::format("Caught exception {}.", ex.what()));
       m_LastError = Error::ERROR_LIBRARY_NOT_FOUND;
@@ -175,13 +186,14 @@ ArchiveImpl::~ArchiveImpl()
 bool ArchiveImpl::open(std::filesystem::path const& archiveName,
                        PasswordCallback passwordCallback)
 {
-  if(!m_Valid){
-    switch(m_LastError){
+  if (!m_Valid) {
+    switch (m_LastError) {
     case Error::ERROR_LIBRARY_NOT_FOUND:
       m_LogCallback(LogLevel::Error, "Could not open 7z library");
       break;
     default:
-      m_LogCallback(LogLevel::Error, "Unknown error, id: " + to_string((int)m_LastError));
+      m_LogCallback(LogLevel::Error,
+                    "Unknown error, id: " + to_string((int)m_LastError));
     }
     return false;
   }
@@ -197,7 +209,8 @@ bool ArchiveImpl::open(std::filesystem::path const& archiveName,
     m_ArchivePtr = new BitArchiveReader(*m_Library, archiveName, BitFormat::Auto);
 
     m_PasswordCallback = passwordCallback;
-    m_ArchivePtr->setPasswordCallback(bind(&ArchiveImpl::passwordCallbackWrapper, this));
+    m_ArchivePtr->setPasswordCallback(
+        bind(&ArchiveImpl::passwordCallbackWrapper, this));
 
     m_Total = m_ArchivePtr->size();
 
@@ -205,7 +218,7 @@ bool ArchiveImpl::open(std::filesystem::path const& archiveName,
     resetFileList();
     return true;
 
-  } catch ( const bit7z::BitException& ex ) {
+  } catch (const bit7z::BitException& ex) {
     m_LastError = Error::ERROR_FAILED_TO_OPEN_ARCHIVE;
     m_LogCallback(Archive::LogLevel::Error, ex.what());
     return false;
@@ -221,7 +234,7 @@ void ArchiveImpl::close()
 
 void ArchiveImpl::clearFileList()
 {
-  for(FileData* iter : m_FileList) {
+  for (FileData* iter : m_FileList) {
     delete dynamic_cast<FileDataImpl*>(iter);
   }
   m_FileList.clear();
@@ -229,42 +242,43 @@ void ArchiveImpl::clearFileList()
 
 void ArchiveImpl::resetFileList()
 {
-  try{
+  try {
     clearFileList();
 
     m_FileList.reserve(m_ArchivePtr->itemsCount());
 
-    for(const auto& item: *m_ArchivePtr){
-      m_FileList.push_back(new FileDataImpl(item.path(),item.size(),item.crc(), item.isDir()));
+    for (const auto& item : *m_ArchivePtr) {
+      m_FileList.push_back(
+          new FileDataImpl(item.path(), item.size(), item.crc(), item.isDir()));
     }
 
     // check if we got a nested archive
-    if(m_FileList.size() == 1) {
-      if(m_FileList[0]->getArchiveFilePath().extension() == ".tar"){
+    if (m_FileList.size() == 1) {
+      if (m_FileList[0]->getArchiveFilePath().extension() == ".tar") {
         m_Nested = true;
       }
     }
-  }
-  catch(...) {
+  } catch (...) {
     throw;
   }
 }
 
-bool ArchiveImpl::extract(const std::filesystem::path &outputDirectory,
+bool ArchiveImpl::extract(const std::filesystem::path& outputDirectory,
                           Archive::ProgressCallback progressCallback,
                           Archive::FileChangeCallback fileChangeCallback,
-                          Archive::ErrorCallback errorCallback) {
-  if(!m_Valid) {
+                          Archive::ErrorCallback errorCallback)
+{
+  if (!m_Valid) {
     return false;
   }
 
   try {
     m_ProgressCallback   = progressCallback;
     m_FileChangeCallback = fileChangeCallback;
-    m_ErrorCallback = errorCallback;
+    m_ErrorCallback      = errorCallback;
 
     // set progress callback
-    if(m_ProgressCallback) {
+    if (m_ProgressCallback) {
       m_ProgressType = ProgressType::EXTRACTION;
 
       m_ArchivePtr->setProgressCallback(
@@ -272,7 +286,7 @@ bool ArchiveImpl::extract(const std::filesystem::path &outputDirectory,
     }
 
     // set file changed callback
-    if(m_FileChangeCallback) {
+    if (m_FileChangeCallback) {
       m_FileChangeType = FileChangeType::EXTRACTION_START;
 
       m_ArchivePtr->setFileCallback(
@@ -280,19 +294,21 @@ bool ArchiveImpl::extract(const std::filesystem::path &outputDirectory,
     }
 
     // we could test the archive if we wanted to by calling
-    //m_ArchivePtr->test();
+    // m_ArchivePtr->test();
 
     // handle nested archive
-    if(m_Nested) {
+    if (m_Nested) {
       m_LogCallback(LogLevel::Info, "Extracting nested archive");
       BitNestedArchiveReader nestedReader{*m_Library, *m_ArchivePtr, BitFormat::Tar};
 
       // add callbacks
-      // tar does not support encryption, so we don't need to bother with a password callback
+      // tar does not support encryption, so we don't need to bother with a password
+      // callback
       nestedReader.setProgressCallback(m_ArchivePtr->progressCallback());
       nestedReader.setFileCallback(m_ArchivePtr->fileCallback());
 
-      // NOTE: extracting a tar file can result in additional files like pax_global_header that are not always shown in other software
+      // NOTE: extracting a tar file can result in additional files like
+      // pax_global_header that are not always shown in other software
       nestedReader.extractTo(outputDirectory);
     } else {
       m_ArchivePtr->extractTo(outputDirectory);
@@ -300,7 +316,7 @@ bool ArchiveImpl::extract(const std::filesystem::path &outputDirectory,
 
     return true;
   } catch (const BitException& ex) {
-    if(m_shouldCancel){
+    if (m_shouldCancel) {
       m_LastError = Error::ERROR_EXTRACT_CANCELLED;
     } else {
       m_LastError = Error::ERROR_LIBRARY_ERROR;
@@ -310,12 +326,14 @@ bool ArchiveImpl::extract(const std::filesystem::path &outputDirectory,
   }
 }
 
-void ArchiveImpl::cancel() {
+void ArchiveImpl::cancel()
+{
   m_shouldCancel.store(true);
 }
 
-void ArchiveImpl::reportError(const native_string& message) {
-  if(m_ErrorCallback){
+void ArchiveImpl::reportError(const native_string& message)
+{
+  if (m_ErrorCallback) {
     m_ErrorCallback(message);
   }
 }
@@ -323,7 +341,7 @@ void ArchiveImpl::reportError(const native_string& message) {
 native_string ArchiveImpl::passwordCallbackWrapper()
 {
   // only ask for password once
-  if(m_Password.empty() && m_PasswordCallback) {
+  if (m_Password.empty() && m_PasswordCallback) {
     m_Password = m_PasswordCallback();
   }
   return m_Password;
@@ -340,6 +358,7 @@ void ArchiveImpl::fileChangeCallbackWrapper(const native_string& path)
   m_FileChangeCallback(m_FileChangeType, path);
 }
 
-DLLEXPORT std::unique_ptr<Archive> CreateArchive() {
+DLLEXPORT std::unique_ptr<Archive> CreateArchive()
+{
   return std::make_unique<ArchiveImpl>();
 }
