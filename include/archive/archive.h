@@ -140,11 +140,12 @@ public:  // Declarations
   /**
    * List of callbacks:
    */
-  using LogCallback        = std::function<void(LogLevel, native_string const& log)>;
-  using ProgressCallback   = std::function<void(ProgressType, uint64_t, uint64_t)>;
-  using PasswordCallback   = std::function<native_string()>;
-  using FileChangeCallback = std::function<void(FileChangeType, std::filesystem::path const&)>;
-  using ErrorCallback      = std::function<void(native_string const&)>;
+  using LogCallback      = std::function<void(LogLevel, native_string const& log)>;
+  using ProgressCallback = std::function<void(ProgressType, uint64_t, uint64_t)>;
+  using PasswordCallback = std::function<native_string()>;
+  using FileChangeCallback =
+      std::function<void(FileChangeType, std::filesystem::path const&)>;
+  using ErrorCallback = std::function<void(native_string const&)>;
 
   /**
    *
@@ -243,11 +244,13 @@ public:
   virtual void cancel() = 0;
 
   // A bunch of useful overloads (with one or two callbacks):
-  bool extract(std::filesystem::path const& outputDirectory, ErrorCallback errorCallback)
+  bool extract(std::filesystem::path const& outputDirectory,
+               ErrorCallback errorCallback)
   {
     return extract(outputDirectory, {}, {}, errorCallback);
   }
-  bool extract(std::filesystem::path const& outputDirectory, ProgressCallback progressCallback)
+  bool extract(std::filesystem::path const& outputDirectory,
+               ProgressCallback progressCallback)
   {
     return extract(outputDirectory, progressCallback, {}, {});
   }
@@ -256,13 +259,13 @@ public:
   {
     return extract(outputDirectory, {}, fileChangeCallback, {});
   }
-  bool extract(std::filesystem::path const& outputDirectory, ProgressCallback progressCallback,
-               ErrorCallback errorCallback)
+  bool extract(std::filesystem::path const& outputDirectory,
+               ProgressCallback progressCallback, ErrorCallback errorCallback)
   {
     return extract(outputDirectory, progressCallback, {}, errorCallback);
   }
-  bool extract(std::filesystem::path const& outputDirectory, ProgressCallback progressCallback,
-               FileChangeCallback fileChangeCallback)
+  bool extract(std::filesystem::path const& outputDirectory,
+               ProgressCallback progressCallback, FileChangeCallback fileChangeCallback)
   {
     return extract(outputDirectory, progressCallback, fileChangeCallback, {});
   }
