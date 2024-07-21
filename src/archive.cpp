@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <bit7z/bitformat.hpp>
 #include <bit7z/bitnestedarchivereader.hpp>
 
+#include <QString>
 #include <atomic>
 #include <filesystem>
 #include <utility>
@@ -32,13 +33,20 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #ifdef _WIN32
 static std::filesystem::path LIB = "dlls/7zip.dll";
 static std::filesystem::path LIB_FALLBACK;
+#define TO_NATIVE toStdWString
 #else
 static std::filesystem::path LIB          = "lib/lib7zip.so";
 static std::filesystem::path LIB_FALLBACK = "/usr/lib64/p7zip/7z.so";
+#define TO_NATIVE toStdString
 #endif
 
 using namespace bit7z;
 using namespace std;
+
+inline native_string toNative(const QString& str)
+{
+  return str.TO_NATIVE();
+}
 
 class FileDataImpl : public FileData
 {
@@ -118,12 +126,12 @@ public:
 private:
   void clearFileList();
   void resetFileList();
-  void reportError(const native_string& message);
+  void reportError(const QString& message);
 
   // callback wrapper functions
   bool progressCallbackWrapper(uint64_t current);  // returns true if we should continue
                                                    // extracting, false otherwise
-  void fileChangeCallbackWrapper(const native_string& path);
+  void fileChangeCallbackWrapper(const std::filesystem::path& path);
   native_string passwordCallbackWrapper();
 
   bool m_Valid;
@@ -146,11 +154,10 @@ private:
 
   std::vector<FileData*> m_FileList;
 
-  native_string m_Password;
+  QString m_Password;
 };
 
-Archive::LogCallback ArchiveImpl::DefaultLogCallback([](LogLevel,
-                                                        native_string const&) {});
+Archive::LogCallback ArchiveImpl::DefaultLogCallback([](LogLevel, QString const&) {});
 
 ArchiveImpl::ArchiveImpl()
     : m_Valid(false), m_Nested(false), m_LastError(Error::ERROR_NONE),
@@ -171,7 +178,7 @@ ArchiveImpl::ArchiveImpl()
       m_Library = new Bit7zLibrary(LIB_FALLBACK);
       m_Valid   = true;
     } catch (const BitException& ex) {
-      m_LogCallback(LogLevel::Error, std::format("Caught exception {}.", ex.what()));
+      m_LogCallback(LogLevel::Error, QString("Caught exception %1.").arg(ex.what()));
       m_LastError = Error::ERROR_LIBRARY_NOT_FOUND;
     }
   }
@@ -193,7 +200,7 @@ bool ArchiveImpl::open(std::filesystem::path const& archiveName,
       break;
     default:
       m_LogCallback(LogLevel::Error,
-                    "Unknown error, id: " + to_string((int)m_LastError));
+                    QString("Unknown error, id: %1").arg((int)m_LastError));
     }
     return false;
   }
@@ -331,7 +338,7 @@ void ArchiveImpl::cancel()
   m_shouldCancel.store(true);
 }
 
-void ArchiveImpl::reportError(const native_string& message)
+void ArchiveImpl::reportError(const QString& message)
 {
   if (m_ErrorCallback) {
     m_ErrorCallback(message);
@@ -341,10 +348,10 @@ void ArchiveImpl::reportError(const native_string& message)
 native_string ArchiveImpl::passwordCallbackWrapper()
 {
   // only ask for password once
-  if (m_Password.empty() && m_PasswordCallback) {
+  if (m_Password.isEmpty() && m_PasswordCallback) {
     m_Password = m_PasswordCallback();
   }
-  return m_Password;
+  return toNative(m_Password);
 }
 
 bool ArchiveImpl::progressCallbackWrapper(uint64_t current)
@@ -353,7 +360,7 @@ bool ArchiveImpl::progressCallbackWrapper(uint64_t current)
   return !m_shouldCancel;
 }
 
-void ArchiveImpl::fileChangeCallbackWrapper(const native_string& path)
+void ArchiveImpl::fileChangeCallbackWrapper(const std::filesystem::path& path)
 {
   m_FileChangeCallback(m_FileChangeType, path);
 }

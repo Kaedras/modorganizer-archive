@@ -10,6 +10,8 @@ option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 # configure bit7z options
 # enable automatic format detection
 set(BIT7Z_AUTO_FORMAT ON)
+# Enables using the OS native string type (i.e., std::wstring on Windows, std::string elsewhere)
+set(BIT7Z_USE_NATIVE_STRING ON)
 if(UNIX)
     # enable support for older 7zip libraries, e.g. p7zip
     set(BIT7Z_USE_LEGACY_IUNKNOWN ON)

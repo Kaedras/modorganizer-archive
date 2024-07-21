@@ -21,6 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #ifndef ARCHIVE_H
 #define ARCHIVE_H
 
+#include <QString>
 #include <cstdint>
 #include <filesystem>
 #include <functional>
@@ -28,11 +29,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <string>
 
 #ifdef _WIN32
-using native_string = std::wstring;
 #define EXPORT __declspec(dllexport)
 #define IMPORT __declspec(dllimport)
 #else
-using native_string = std::string;
 #define EXPORT __attribute__((visibility("default")))
 #define IMPORT __attribute__((visibility("hidden")))
 #endif
@@ -140,12 +139,12 @@ public:  // Declarations
   /**
    * List of callbacks:
    */
-  using LogCallback      = std::function<void(LogLevel, native_string const& log)>;
+  using LogCallback      = std::function<void(LogLevel, QString const& log)>;
   using ProgressCallback = std::function<void(ProgressType, uint64_t, uint64_t)>;
-  using PasswordCallback = std::function<native_string()>;
+  using PasswordCallback = std::function<QString()>;
   using FileChangeCallback =
       std::function<void(FileChangeType, std::filesystem::path const&)>;
-  using ErrorCallback = std::function<void(native_string const&)>;
+  using ErrorCallback = std::function<void(QString const&)>;
 
   /**
    *
