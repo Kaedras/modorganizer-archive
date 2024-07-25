@@ -31,7 +31,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <utility>
 
 #ifdef _WIN32
-static std::filesystem::path LIB = "dlls/7zip.dll";
+static std::filesystem::path LIB = "dlls/7z.dll";
 static std::filesystem::path LIB_FALLBACK;
 #define TO_NATIVE toStdWString
 #else
@@ -122,7 +122,6 @@ public:
                ErrorCallback errorCallback) override;
 
   void cancel() override;
-
 private:
   void clearFileList();
   void resetFileList();
