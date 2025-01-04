@@ -23,16 +23,6 @@ if(UNIX)
     endif()
 endif()
 
-# fetch bit7z
-# TODO: switch to stable version once 4.1 has been released, there may be a vcpkg version by then
-include(FetchContent)
-FetchContent_Declare(
-        bit7z
-        GIT_REPOSITORY https://github.com/rikyoz/bit7z.git
-        GIT_TAG develop # this branch supports nested archives
-)
-FetchContent_MakeAvailable(bit7z)
-
 add_subdirectory(src)
 
 configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.cmake.in

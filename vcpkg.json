@@ -1,4 +1,4 @@
 {
-  "dependencies": ["7zip"],
-  "builtin-baseline": "47bf3d1ac192b3fa0feb6e6ac9c845de179eebe9"
+  "dependencies": ["7zip", "bit7z"],
+  "builtin-baseline": "65be7019941e1401e02daaba0738cab2c8a4a355"
 }

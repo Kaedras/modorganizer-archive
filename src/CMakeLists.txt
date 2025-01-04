@@ -3,9 +3,10 @@ cmake_minimum_required(VERSION 3.16)
 add_library(archive)
 
 find_package(Qt6 CONFIG REQUIRED COMPONENTS Core)
+find_package(unofficial-bit7z CONFIG REQUIRED)
 
 set_target_properties(archive PROPERTIES CXX_STANDARD 20)
-target_link_libraries(archive PRIVATE bit7z Qt::Core)
+target_link_libraries(archive PRIVATE unofficial::bit7z::bit7z64 Qt::Core)
 
 target_sources(archive
 	PRIVATE
@@ -44,7 +45,6 @@ if (NOT CMAKE_BUILD_PARALLEL_LEVEL)
 	include(ProcessorCount)
 	ProcessorCount(HOST_PROC_COUNT)
 	set(CMAKE_BUILD_PARALLEL_LEVEL ${HOST_PROC_COUNT})
-	message(STATUS "Setting CMAKE_BUILD_PARALLEL_LEVEL to ${HOST_PROC_COUNT}")
 endif ()
 
 if (BUILD_STATIC)

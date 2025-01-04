@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <bit7z/bitabstractarchivehandler.hpp>
 #include <bit7z/bitarchivereader.hpp>
 #include <bit7z/bitformat.hpp>
-#include <bit7z/bitnestedarchivereader.hpp>
+//#include <bit7z/bitnestedarchivereader.hpp>
 
 #include <QString>
 #include <atomic>
@@ -122,6 +122,7 @@ public:
                ErrorCallback errorCallback) override;
 
   void cancel() override;
+
 private:
   void clearFileList();
   void resetFileList();
@@ -262,6 +263,7 @@ void ArchiveImpl::resetFileList()
     if (m_FileList.size() == 1) {
       if (m_FileList[0]->getArchiveFilePath().extension() == ".tar") {
         m_Nested = true;
+        // TODO: handle nested archives
       }
     }
   } catch (...) {
@@ -301,7 +303,9 @@ bool ArchiveImpl::extract(const std::filesystem::path& outputDirectory,
 
     // we could test the archive if we wanted to by calling
     // m_ArchivePtr->test();
-
+    m_ArchivePtr->extractTo(outputDirectory);
+    // TODO: handle nested archives another way or uncomment code below after bit7z 4.1 has been released
+    /*
     // handle nested archive
     if (m_Nested) {
       m_LogCallback(LogLevel::Info, "Extracting nested archive");
@@ -319,6 +323,7 @@ bool ArchiveImpl::extract(const std::filesystem::path& outputDirectory,
     } else {
       m_ArchivePtr->extractTo(outputDirectory);
     }
+  */
 
     return true;
   } catch (const BitException& ex) {
