@@ -42,7 +42,12 @@
       "generator": "Visual Studio 17 2022",
       "inherits": ["cmake-dev", "vcpkg"],
       "name": "vs2022-windows-static",
-      "toolset": "v143"
+      "toolset": "v143",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
     },
     {
       "cacheVariables": {
@@ -65,37 +70,20 @@
     {
       "binaryDir": "${sourceDir}/linux-build",
       "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "-Wall -Wextra",
+        "CMAKE_CXX_FLAGS": "-Wall -Wextra -Wpedantic -fvisibility-ms-compat",
         "VCPKG_TARGET_TRIPLET": {
           "type": "STRING",
           "value": "x64-linux"
-        },
-        "BUILD_SHARED_LIBS": {
-          "type": "BOOL",
-          "value": "OFF"
         }
       },
       "generator": "Ninja Multi-Config",
       "inherits": ["cmake-dev", "vcpkg"],
-      "name": "linux-static"
-    },
-    {
-      "cacheVariables": {
-        "BUILD_SHARED_LIBS": {
-          "type": "BOOL",
-          "value": "ON"
-        },
-        "VCPKG_TARGET_TRIPLET": {
-          "type": "STRING",
-          "value": "x64-linux-dynamic"
-        }
-      },
-      "inherits": "linux-static",
-      "name": "linux-shared"
-    },
-    {
-      "inherits": "linux-shared",
-      "name": "linux"
+      "name": "linux",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
     }
   ],
   "version": 4

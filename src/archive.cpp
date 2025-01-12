@@ -55,20 +55,23 @@ class FileDataImpl : public FileData
 public:
   FileDataImpl(std::filesystem::path fileName, uint64_t size, uint64_t crc,
                bool isDirectory)
-      : m_FileName(std::move(fileName)), m_Size(size), m_CRC(crc),
-        m_IsDirectory(isDirectory)
-  {}
+    : m_FileName(std::move(fileName)), m_Size(size), m_CRC(crc),
+      m_IsDirectory(isDirectory)
+  {
+  }
 
   [[nodiscard]] std::filesystem::path getArchiveFilePath() const override
   {
     return m_FileName;
   }
+
   [[nodiscard]] uint64_t getSize() const override { return m_Size; }
 
   void addOutputFilePath(std::filesystem::path const& fileName) override
   {
     m_OutputFilePaths.push_back(fileName);
   }
+
   [[nodiscard]] const std::vector<std::filesystem::path>&
   getOutputFilePaths() const override
   {
@@ -104,6 +107,7 @@ public:
   [[nodiscard]] bool isValid() const override { return m_Valid; }
 
   [[nodiscard]] Error getLastError() const override { return m_LastError; }
+
   void setLogCallback(LogCallback logCallback) override
   {
     // Wrap the callback so that we do not have to check if it is set everywhere:
@@ -113,10 +117,12 @@ public:
   bool open(std::filesystem::path const& archiveName,
             PasswordCallback passwordCallback) override;
   void close() override;
+
   [[nodiscard]] const std::vector<FileData*>& getFileList() const override
   {
     return m_FileList;
   }
+
   bool extract(std::filesystem::path const& outputDirectory,
                ProgressCallback progressCallback, FileChangeCallback fileChangeCallback,
                ErrorCallback errorCallback) override;
@@ -129,20 +135,20 @@ private:
   void reportError(const QString& message);
 
   // callback wrapper functions
-  bool progressCallbackWrapper(uint64_t current);  // returns true if we should continue
-                                                   // extracting, false otherwise
+  /** @returns true if we should continue extracting, false otherwise */
+  bool progressCallbackWrapper(uint64_t current);
   void fileChangeCallbackWrapper(const std::filesystem::path& path);
   native_string passwordCallbackWrapper();
 
   bool m_Valid;
-  bool m_Nested;  // if we got a nested archive, e.g. tar.gz
+  bool m_Nested; // whether we got a nested archive, e.g. tar.gz; currently unused
   Error m_LastError;
   std::atomic<bool> m_shouldCancel = false;
 
-  bit7z::Bit7zLibrary* m_Library;
+  Bit7zLibrary* m_Library;
   BitArchiveReader* m_ArchivePtr;
 
-  Archive::ProgressType m_ProgressType;
+  ProgressType m_ProgressType;
   uint64_t m_Total;
   FileChangeType m_FileChangeType;
 
@@ -157,22 +163,23 @@ private:
   QString m_Password;
 };
 
-Archive::LogCallback ArchiveImpl::DefaultLogCallback([](LogLevel, QString const&) {});
+Archive::LogCallback ArchiveImpl::DefaultLogCallback([](LogLevel, QString const&) {
+});
 
 ArchiveImpl::ArchiveImpl()
-    : m_Valid(false), m_Nested(false), m_LastError(Error::ERROR_NONE),
-      m_ArchivePtr(nullptr), m_ProgressType(Archive::ProgressType::EXTRACTION),
-      m_Total(0), m_FileChangeType(FileChangeType::EXTRACTION_START)
+  : m_Valid(false), m_Nested(false), m_LastError(Error::ERROR_NONE),
+    m_ArchivePtr(nullptr), m_ProgressType(ProgressType::EXTRACTION),
+    m_Total(0), m_FileChangeType(FileChangeType::EXTRACTION_START)
 {
   // Reset the log callback:
-  setLogCallback({});
+  ArchiveImpl::setLogCallback({});
 
   // the default constructor would look for "7z.dll" on windows and
   // "/usr/lib/p7zip/7z.so" on linux
   try {
     m_Library = new Bit7zLibrary(LIB);
     m_Valid   = true;
-  } catch (const BitException& ex) {
+  } catch (BitException&) {
     // try a second time using another library path
     try {
       m_Library = new Bit7zLibrary(LIB_FALLBACK);
@@ -186,7 +193,7 @@ ArchiveImpl::ArchiveImpl()
 
 ArchiveImpl::~ArchiveImpl()
 {
-  close();
+  ArchiveImpl::close();
   delete m_Library;
 }
 
@@ -200,7 +207,8 @@ bool ArchiveImpl::open(std::filesystem::path const& archiveName,
       break;
     default:
       m_LogCallback(LogLevel::Error,
-                    QString("Unknown error, id: %1").arg((int)m_LastError));
+                    QString("Unknown error, id: %1").arg(
+                        static_cast<int>(m_LastError)));
     }
     return false;
   }
@@ -208,7 +216,7 @@ bool ArchiveImpl::open(std::filesystem::path const& archiveName,
   // If it doesn't exist or is a directory, error
   if (!exists(archiveName) || is_directory(archiveName)) {
     m_LastError = Error::ERROR_ARCHIVE_NOT_FOUND;
-    m_LogCallback(Archive::LogLevel::Error, "Archive not found");
+    m_LogCallback(LogLevel::Error, "Archive not found");
     return false;
   }
 
@@ -225,9 +233,9 @@ bool ArchiveImpl::open(std::filesystem::path const& archiveName,
     resetFileList();
     return true;
 
-  } catch (const bit7z::BitException& ex) {
+  } catch (const BitException& ex) {
     m_LastError = Error::ERROR_FAILED_TO_OPEN_ARCHIVE;
-    m_LogCallback(Archive::LogLevel::Error, ex.what());
+    m_LogCallback(LogLevel::Error, ex.what());
     return false;
   }
 }
@@ -249,32 +257,27 @@ void ArchiveImpl::clearFileList()
 
 void ArchiveImpl::resetFileList()
 {
-  try {
-    clearFileList();
+  clearFileList();
 
-    m_FileList.reserve(m_ArchivePtr->itemsCount());
+  m_FileList.reserve(m_ArchivePtr->itemsCount());
 
-    for (const auto& item : *m_ArchivePtr) {
-      m_FileList.push_back(
-          new FileDataImpl(item.path(), item.size(), item.crc(), item.isDir()));
+  for (const auto& item : *m_ArchivePtr) {
+    m_FileList.push_back(
+        new FileDataImpl(item.path(), item.size(), item.crc(), item.isDir()));
+  }
+
+  // check if we got a nested archive
+  if (m_FileList.size() == 1) {
+    if (m_FileList[0]->getArchiveFilePath().extension() == ".tar") {
+      m_Nested = true;
     }
-
-    // check if we got a nested archive
-    if (m_FileList.size() == 1) {
-      if (m_FileList[0]->getArchiveFilePath().extension() == ".tar") {
-        m_Nested = true;
-        // TODO: handle nested archives
-      }
-    }
-  } catch (...) {
-    throw;
   }
 }
 
 bool ArchiveImpl::extract(const std::filesystem::path& outputDirectory,
-                          Archive::ProgressCallback progressCallback,
-                          Archive::FileChangeCallback fileChangeCallback,
-                          Archive::ErrorCallback errorCallback)
+                          ProgressCallback progressCallback,
+                          FileChangeCallback fileChangeCallback,
+                          ErrorCallback errorCallback)
 {
   if (!m_Valid) {
     return false;
