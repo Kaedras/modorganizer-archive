@@ -28,20 +28,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <memory>
 #include <string>
 
-#ifdef _WIN32
-#define EXPORT __declspec(dllexport)
-#define IMPORT __declspec(dllimport)
+#ifdef __unix__
+#define DLLEXPORT __attribute__((visibility("default")))
 #else
-#define EXPORT __attribute__((visibility("default")))
-#define IMPORT __attribute__((visibility("hidden")))
-#endif
-
 #if defined(MO2_ARCHIVE_BUILD_STATIC)
 #define DLLEXPORT
 #elif defined(MO2_ARCHIVE_BUILD_EXPORT)
-#define DLLEXPORT EXPORT
+#define DLLEXPORT _declspec(dllexport)
 #else
-#define DLLEXPORT IMPORT
+#define DLLEXPORT _declspec(dllimport)
+#endif
 #endif
 
 class FileData

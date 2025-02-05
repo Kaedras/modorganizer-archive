@@ -35,7 +35,7 @@ if (MSVC)
 
 	set_target_properties(archive PROPERTIES VS_STARTUP_PROJECT archive)
 else()
-	target_compile_options(archive PRIVATE -Wall -Wextra -Wpedantic -fvisibility=hidden)
+	target_compile_options(archive PRIVATE -Wall -Wextra -Wpedantic -fvisibility-ms-compat)
 	target_link_options(archive PRIVATE  $<$<CONFIG:RelWithDebInfo>:-flto>)
 endif()
 
