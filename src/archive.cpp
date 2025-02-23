@@ -243,6 +243,7 @@ bool ArchiveImpl::open(std::filesystem::path const& archiveName,
 void ArchiveImpl::close()
 {
   delete m_ArchivePtr;
+  m_ArchivePtr = nullptr;
   clearFileList();
   m_PasswordCallback = {};
 }
