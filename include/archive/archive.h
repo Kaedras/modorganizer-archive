@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 
 #ifdef __unix__
 #define DLLEXPORT __attribute__((visibility("default")))
@@ -160,7 +161,7 @@ public:  // Declarations
   };
 
 public:  // Special member functions:
-  virtual ~Archive() {}
+  virtual ~Archive() = default;
 
 public:
   /**
@@ -242,32 +243,40 @@ public:
   bool extract(std::filesystem::path const& outputDirectory,
                ErrorCallback errorCallback)
   {
-    return extract(outputDirectory, {}, {}, errorCallback);
+    return extract(outputDirectory, {}, {}, std::move(errorCallback));
   }
+
   bool extract(std::filesystem::path const& outputDirectory,
                ProgressCallback progressCallback)
   {
-    return extract(outputDirectory, progressCallback, {}, {});
+    return extract(outputDirectory, std::move(progressCallback), {}, {});
   }
+
   bool extract(std::filesystem::path const& outputDirectory,
                FileChangeCallback fileChangeCallback)
   {
-    return extract(outputDirectory, {}, fileChangeCallback, {});
+    return extract(outputDirectory, {}, std::move(fileChangeCallback), {});
   }
+
   bool extract(std::filesystem::path const& outputDirectory,
                ProgressCallback progressCallback, ErrorCallback errorCallback)
   {
-    return extract(outputDirectory, progressCallback, {}, errorCallback);
+    return extract(outputDirectory, std::move(progressCallback), {},
+                   std::move(errorCallback));
   }
+
   bool extract(std::filesystem::path const& outputDirectory,
                ProgressCallback progressCallback, FileChangeCallback fileChangeCallback)
   {
-    return extract(outputDirectory, progressCallback, fileChangeCallback, {});
+    return extract(outputDirectory, std::move(progressCallback),
+                   std::move(fileChangeCallback), {});
   }
+
   bool extract(std::filesystem::path const& outputDirectory,
                FileChangeCallback fileChangeCallback, ErrorCallback errorCallback)
   {
-    return extract(outputDirectory, {}, fileChangeCallback, errorCallback);
+    return extract(outputDirectory, {}, std::move(fileChangeCallback),
+                   std::move(errorCallback));
   }
 };
 

@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <bit7z/bitabstractarchivehandler.hpp>
 #include <bit7z/bitarchivereader.hpp>
 #include <bit7z/bitformat.hpp>
-//#include <bit7z/bitnestedarchivereader.hpp>
+// #include <bit7z/bitnestedarchivereader.hpp>
 
 #include <QString>
 #include <atomic>
@@ -55,10 +55,9 @@ class FileDataImpl : public FileData
 public:
   FileDataImpl(std::filesystem::path fileName, uint64_t size, uint64_t crc,
                bool isDirectory)
-    : m_FileName(std::move(fileName)), m_Size(size), m_CRC(crc),
-      m_IsDirectory(isDirectory)
-  {
-  }
+      : m_FileName(std::move(fileName)), m_Size(size), m_CRC(crc),
+        m_IsDirectory(isDirectory)
+  {}
 
   [[nodiscard]] std::filesystem::path getArchiveFilePath() const override
   {
@@ -132,16 +131,16 @@ public:
 private:
   void clearFileList();
   void resetFileList();
-  void reportError(const QString& message);
+  void reportError(const QString& message) const;
 
   // callback wrapper functions
   /** @returns true if we should continue extracting, false otherwise */
-  bool progressCallbackWrapper(uint64_t current);
-  void fileChangeCallbackWrapper(const std::filesystem::path& path);
+  bool progressCallbackWrapper(uint64_t current) const;
+  void fileChangeCallbackWrapper(const std::filesystem::path& path) const;
   native_string passwordCallbackWrapper();
 
   bool m_Valid;
-  bool m_Nested; // whether we got a nested archive, e.g. tar.gz; currently unused
+  bool m_Nested;  // whether we got a nested archive, e.g. tar.gz; currently unused
   Error m_LastError;
   std::atomic<bool> m_shouldCancel = false;
 
@@ -163,13 +162,12 @@ private:
   QString m_Password;
 };
 
-Archive::LogCallback ArchiveImpl::DefaultLogCallback([](LogLevel, QString const&) {
-});
+Archive::LogCallback ArchiveImpl::DefaultLogCallback([](LogLevel, QString const&) {});
 
 ArchiveImpl::ArchiveImpl()
-  : m_Valid(false), m_Nested(false), m_LastError(Error::ERROR_NONE),
-    m_ArchivePtr(nullptr), m_ProgressType(ProgressType::EXTRACTION),
-    m_Total(0), m_FileChangeType(FileChangeType::EXTRACTION_START)
+    : m_Valid(false), m_Nested(false), m_LastError(Error::ERROR_NONE),
+      m_ArchivePtr(nullptr), m_ProgressType(ProgressType::EXTRACTION), m_Total(0),
+      m_FileChangeType(FileChangeType::EXTRACTION_START)
 {
   // Reset the log callback:
   ArchiveImpl::setLogCallback({});
@@ -206,9 +204,9 @@ bool ArchiveImpl::open(std::filesystem::path const& archiveName,
       m_LogCallback(LogLevel::Error, "Could not open 7z library");
       break;
     default:
-      m_LogCallback(LogLevel::Error,
-                    QString("Unknown error, id: %1").arg(
-                        static_cast<int>(m_LastError)));
+      m_LogCallback(
+          LogLevel::Error,
+          QString("Unknown error, id: %1").arg(static_cast<int>(m_LastError)));
     }
     return false;
   }
@@ -224,8 +222,9 @@ bool ArchiveImpl::open(std::filesystem::path const& archiveName,
     m_ArchivePtr = new BitArchiveReader(*m_Library, archiveName, BitFormat::Auto);
 
     m_PasswordCallback = passwordCallback;
-    m_ArchivePtr->setPasswordCallback(
-        bind(&ArchiveImpl::passwordCallbackWrapper, this));
+    m_ArchivePtr->setPasswordCallback([this] {
+      return passwordCallbackWrapper();
+    });
 
     m_Total = m_ArchivePtr->size();
 
@@ -293,22 +292,25 @@ bool ArchiveImpl::extract(const std::filesystem::path& outputDirectory,
     if (m_ProgressCallback) {
       m_ProgressType = ProgressType::EXTRACTION;
 
-      m_ArchivePtr->setProgressCallback(
-          bind(&ArchiveImpl::progressCallbackWrapper, this, placeholders::_1));
+      m_ArchivePtr->setProgressCallback([this](uint64_t&& progress) {
+        return progressCallbackWrapper(std::forward<uint64_t>(progress));
+      });
     }
 
     // set file changed callback
     if (m_FileChangeCallback) {
       m_FileChangeType = FileChangeType::EXTRACTION_START;
 
-      m_ArchivePtr->setFileCallback(
-          bind(&ArchiveImpl::fileChangeCallbackWrapper, this, placeholders::_1));
+      m_ArchivePtr->setFileCallback([this](tstring&& path) {
+        fileChangeCallbackWrapper(std::forward<tstring>(path));
+      });
     }
 
     // we could test the archive if we wanted to by calling
     // m_ArchivePtr->test();
     m_ArchivePtr->extractTo(outputDirectory);
-    // TODO: handle nested archives another way or uncomment code below after bit7z 4.1 has been released
+    // TODO: handle nested archives another way or uncomment code below after bit7z 4.1
+    // has been released
     /*
     // handle nested archive
     if (m_Nested) {
@@ -346,7 +348,7 @@ void ArchiveImpl::cancel()
   m_shouldCancel.store(true);
 }
 
-void ArchiveImpl::reportError(const QString& message)
+void ArchiveImpl::reportError(const QString& message) const
 {
   if (m_ErrorCallback) {
     m_ErrorCallback(message);
@@ -362,13 +364,13 @@ native_string ArchiveImpl::passwordCallbackWrapper()
   return toNative(m_Password);
 }
 
-bool ArchiveImpl::progressCallbackWrapper(uint64_t current)
+bool ArchiveImpl::progressCallbackWrapper(uint64_t current) const
 {
   m_ProgressCallback(m_ProgressType, current, m_Total);
   return !m_shouldCancel;
 }
 
-void ArchiveImpl::fileChangeCallbackWrapper(const std::filesystem::path& path)
+void ArchiveImpl::fileChangeCallbackWrapper(const std::filesystem::path& path) const
 {
   m_FileChangeCallback(m_FileChangeType, path);
 }
