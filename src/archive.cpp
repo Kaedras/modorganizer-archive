@@ -30,19 +30,21 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <filesystem>
 #include <fstream>
 #include <utility>
+#include <vector>
 
 #ifdef _WIN32
-static std::filesystem::path LIB = "dlls/7z.dll";
-static std::filesystem::path LIB_FALLBACK;
+static const std::vector<std::filesystem::path> libraryPaths{"dlls/7z.dll"};
 #define TO_NATIVE toStdWString
 #else
-static std::filesystem::path LIB          = "lib/lib7zip.so";
-static std::filesystem::path LIB_FALLBACK = "/usr/lib64/p7zip/7z.so";
+// list of 7z library paths including fallback locations
+static const std::vector<std::filesystem::path> libraryPaths{
+    "lib/lib7zip.so", "/usr/lib64/p7zip/7z.so", "/usr/lib/p7zip/7z.so"};
 #define TO_NATIVE toStdString
 #endif
 
 using namespace bit7z;
 using namespace std;
+using namespace Qt::StringLiterals;
 
 inline native_string toNative(const QString& str)
 {
@@ -136,7 +138,7 @@ private:
 
   // callback wrapper functions
   /** @returns true if we should continue extracting, false otherwise */
-  bool progressCallbackWrapper(uint64_t current) const;
+  [[nodiscard]] bool progressCallbackWrapper(uint64_t current) const;
   void fileChangeCallbackWrapper(const std::filesystem::path& path) const;
   native_string passwordCallbackWrapper();
 
@@ -175,18 +177,20 @@ ArchiveImpl::ArchiveImpl()
 
   // the default constructor would look for "7z.dll" on windows and
   // "/usr/lib/p7zip/7z.so" on linux
-  try {
-    m_Library = new Bit7zLibrary(LIB);
-    m_Valid   = true;
-  } catch (BitException&) {
-    // try a second time using another library path
+  string error;
+  for (const auto& path : libraryPaths) {
     try {
-      m_Library = new Bit7zLibrary(LIB_FALLBACK);
+      m_Library = new Bit7zLibrary(path);
       m_Valid   = true;
+      break;
     } catch (const BitException& ex) {
-      m_LogCallback(LogLevel::Error, QString("Caught exception %1.").arg(ex.what()));
-      m_LastError = Error::ERROR_LIBRARY_NOT_FOUND;
+      error = ex.what();
     }
+  }
+  if (!m_Valid) {
+    m_LogCallback(LogLevel::Error,
+                  QStringLiteral("Could not find 7z library: %1").arg(error.c_str()));
+    m_LastError = Error::ERROR_LIBRARY_NOT_FOUND;
   }
 }
 
@@ -202,12 +206,12 @@ bool ArchiveImpl::open(std::filesystem::path const& archiveName,
   if (!m_Valid) {
     switch (m_LastError) {
     case Error::ERROR_LIBRARY_NOT_FOUND:
-      m_LogCallback(LogLevel::Error, "Could not open 7z library");
+      m_LogCallback(LogLevel::Error, u"Could not open 7z library"_s);
       break;
     default:
       m_LogCallback(
           LogLevel::Error,
-          QString("Unknown error, id: %1").arg(static_cast<int>(m_LastError)));
+          QStringLiteral("Unknown error, id: %1").arg(static_cast<int>(m_LastError)));
     }
     return false;
   }
@@ -215,7 +219,7 @@ bool ArchiveImpl::open(std::filesystem::path const& archiveName,
   // If it doesn't exist or is a directory, error
   if (!exists(archiveName) || is_directory(archiveName)) {
     m_LastError = Error::ERROR_ARCHIVE_NOT_FOUND;
-    m_LogCallback(LogLevel::Error, "Archive not found");
+    m_LogCallback(LogLevel::Error, u"Archive not found"_s);
     return false;
   }
 
@@ -268,11 +272,11 @@ void ArchiveImpl::resetFileList()
   }
 
   // check if we got a nested archive
-  if (m_FileList.size() == 1) {
-    if (m_FileList[0]->getArchiveFilePath().extension() == ".tar") {
-      m_Nested = true;
-    }
-  }
+  // if (m_FileList.size() == 1) {
+  //   if (m_FileList[0]->getArchiveFilePath().extension() == ".tar") {
+  //     m_Nested = true;
+  //   }
+  // }
 }
 
 bool ArchiveImpl::extract(const std::filesystem::path& outputDirectory,
