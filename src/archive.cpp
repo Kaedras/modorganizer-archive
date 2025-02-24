@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <QString>
 #include <atomic>
 #include <filesystem>
+#include <fstream>
 #include <utility>
 
 #ifdef _WIN32
@@ -288,15 +289,6 @@ bool ArchiveImpl::extract(const std::filesystem::path& outputDirectory,
     m_FileChangeCallback = fileChangeCallback;
     m_ErrorCallback      = errorCallback;
 
-    // set progress callback
-    if (m_ProgressCallback) {
-      m_ProgressType = ProgressType::EXTRACTION;
-
-      m_ArchivePtr->setProgressCallback([this](uint64_t&& progress) {
-        return progressCallbackWrapper(std::forward<uint64_t>(progress));
-      });
-    }
-
     // set file changed callback
     if (m_FileChangeCallback) {
       m_FileChangeType = FileChangeType::EXTRACTION_START;
@@ -308,9 +300,78 @@ bool ArchiveImpl::extract(const std::filesystem::path& outputDirectory,
 
     // we could test the archive if we wanted to by calling
     // m_ArchivePtr->test();
-    m_ArchivePtr->extractTo(outputDirectory);
-    // TODO: handle nested archives another way or uncomment code below after bit7z 4.1
-    // has been released
+
+    // calculate total size of items in m_Filelist
+    size_t totalFileListByteSize = 0;
+    for (const auto& file : m_FileList) {
+      if (file->isDirectory()) {
+        continue;
+      }
+
+      totalFileListByteSize += file->getSize() * file->getOutputFilePaths().size();
+    }
+
+    size_t extractedSize = 0;
+
+    for (auto& fileData : m_FileList) {
+      if (m_ProgressCallback) {
+        m_ProgressCallback(ProgressType::EXTRACTION, extractedSize,
+                           totalFileListByteSize);
+      }
+      if (m_shouldCancel) {
+        m_LastError = Error::ERROR_EXTRACT_CANCELLED;
+        return false;
+      }
+
+      // handle directories
+      if (fileData->isDirectory()) {
+        for (const auto& outputFilePath : fileData->getOutputFilePaths()) {
+          fs::path targetDirectory = outputDirectory / outputFilePath;
+          error_code ec;
+          create_directories(targetDirectory, ec);
+          if (ec) {
+            m_LastError = Error::ERROR_LIBRARY_ERROR;
+            reportError(QStringLiteral("Error creating output directory %1: %2")
+                            .arg(targetDirectory.c_str(), ec.message().c_str()));
+            return false;
+          }
+        }
+      } else {
+        // handle files
+        auto it = m_ArchivePtr->find(fileData->getArchiveFilePath());
+        for (const auto& outputFilePath : fileData->getOutputFilePaths()) {
+          // create output directory
+          fs::path targetDirectory = outputDirectory;
+          if (outputFilePath.has_parent_path()) {
+            targetDirectory /= outputFilePath.parent_path();
+          }
+          error_code ec;
+          create_directories(targetDirectory, ec);
+          if (ec) {
+            m_LastError = Error::ERROR_LIBRARY_ERROR;
+            reportError(QStringLiteral("Error creating output directory %1: %2")
+                            .arg(targetDirectory.c_str(), ec.message().c_str()));
+            return false;
+          }
+          try {
+            // extract file
+            std::ofstream ofs(outputDirectory / outputFilePath, ios::binary);
+            ofs.exceptions(std::fstream::failbit);
+            m_ArchivePtr->extractTo(ofs, it->index());
+            extractedSize += fileData->getSize();
+          } catch (const std::ios_base::failure& ex) {
+            m_LastError = Error::ERROR_LIBRARY_ERROR;
+            reportError(
+                QStringLiteral("Error writing to output file %1: %2")
+                    .arg((outputDirectory / outputFilePath).c_str(), ex.what()));
+            return false;
+          }
+        }
+      }
+    }
+
+    // example code to handle nested archives, this will probably be supported in
+    // bit7z 4.1
     /*
     // handle nested archive
     if (m_Nested) {
