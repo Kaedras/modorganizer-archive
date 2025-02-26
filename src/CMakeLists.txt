@@ -35,8 +35,9 @@ if (MSVC)
 
 	set_target_properties(archive PROPERTIES VS_STARTUP_PROJECT archive)
 else()
-	target_compile_options(archive PRIVATE -Wall -Wextra -Wpedantic -fvisibility-ms-compat)
-	target_link_options(archive PRIVATE  $<$<CONFIG:RelWithDebInfo>:-flto>)
+	target_compile_options(archive PRIVATE
+		-Wall -Wextra -Wpedantic -fvisibility-ms-compat -Wl,--no-undefined
+		$<$<CONFIG:RelWithDebInfo,Release>:-flto=auto>)
 endif()
 
 # sets compiler threads to host core count, this is also applied to subprojects
