@@ -169,7 +169,7 @@ private:
 Archive::LogCallback ArchiveImpl::DefaultLogCallback([](LogLevel, QString const&) {});
 
 ArchiveImpl::ArchiveImpl()
-    : m_Valid(false), m_Nested(false), m_LastError(Error::ERROR_NONE),
+    : m_Valid(false), m_Nested(false), m_LastError(Error::ERROR_NONE), m_Library(nullptr),
       m_ArchivePtr(nullptr), m_ProgressType(ProgressType::EXTRACTION), m_Total(0),
       m_FileChangeType(FileChangeType::EXTRACTION_START)
 {
