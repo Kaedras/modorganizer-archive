@@ -161,6 +161,7 @@ private:
   PasswordCallback m_PasswordCallback;
 
   std::vector<FileData*> m_FileList;
+  std::unordered_map<std::filesystem::path, uint32_t> m_FileMap;
 
   QString m_Password;
 };
@@ -269,6 +270,7 @@ void ArchiveImpl::resetFileList()
   for (const auto& item : *m_ArchivePtr) {
     m_FileList.push_back(
         new FileDataImpl(item.path(), item.size(), item.crc(), item.isDir()));
+    m_FileMap[item.path()] = item.index();
   }
 
   // check if we got a nested archive
@@ -342,7 +344,6 @@ bool ArchiveImpl::extract(const std::filesystem::path& outputDirectory,
         }
       } else {
         // handle files
-        auto it = m_ArchivePtr->find(fileData->getArchiveFilePath());
         for (const auto& outputFilePath : fileData->getOutputFilePaths()) {
           // create output directory
           fs::path targetDirectory = outputDirectory;
@@ -361,7 +362,7 @@ bool ArchiveImpl::extract(const std::filesystem::path& outputDirectory,
             // extract file
             std::ofstream ofs(outputDirectory / outputFilePath, ios::binary);
             ofs.exceptions(std::fstream::failbit);
-            m_ArchivePtr->extractTo(ofs, it->index());
+            m_ArchivePtr->extractTo(ofs, m_FileMap.at(outputFilePath));
             extractedSize += fileData->getSize();
           } catch (const std::ios_base::failure& ex) {
             m_LastError = Error::ERROR_LIBRARY_ERROR;
