@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 // #include <bit7z/bitnestedarchivereader.hpp>
 
 #include <QString>
+#include <QTemporaryDir>
 #include <atomic>
 #include <filesystem>
 #include <fstream>
@@ -58,9 +59,10 @@ class FileDataImpl : public FileData
 public:
   FileDataImpl(std::filesystem::path fileName, uint64_t size, uint64_t crc,
                bool isDirectory)
-      : m_FileName(std::move(fileName)), m_Size(size), m_CRC(crc),
-        m_IsDirectory(isDirectory)
-  {}
+    : m_FileName(std::move(fileName)), m_Size(size), m_CRC(crc),
+      m_IsDirectory(isDirectory)
+  {
+  }
 
   [[nodiscard]] std::filesystem::path getArchiveFilePath() const override
   {
@@ -143,7 +145,7 @@ private:
   native_string passwordCallbackWrapper();
 
   bool m_Valid;
-  bool m_Nested;  // whether we got a nested archive, e.g. tar.gz; currently unused
+  bool m_Nested; // whether we got a nested archive, e.g. tar.gz; currently unused
   Error m_LastError;
   std::atomic<bool> m_shouldCancel = false;
 
@@ -166,12 +168,13 @@ private:
   QString m_Password;
 };
 
-Archive::LogCallback ArchiveImpl::DefaultLogCallback([](LogLevel, QString const&) {});
+Archive::LogCallback ArchiveImpl::DefaultLogCallback([](LogLevel, QString const&) {
+});
 
 ArchiveImpl::ArchiveImpl()
-    : m_Valid(false), m_Nested(false), m_LastError(Error::ERROR_NONE), m_Library(nullptr),
-      m_ArchivePtr(nullptr), m_ProgressType(ProgressType::EXTRACTION), m_Total(0),
-      m_FileChangeType(FileChangeType::EXTRACTION_START)
+  : m_Valid(false), m_Nested(false), m_LastError(Error::ERROR_NONE), m_Library(nullptr),
+    m_ArchivePtr(nullptr), m_ProgressType(ProgressType::EXTRACTION), m_Total(0),
+    m_FileChangeType(FileChangeType::EXTRACTION_START)
 {
   // Reset the log callback:
   ArchiveImpl::setLogCallback({});
@@ -307,28 +310,38 @@ bool ArchiveImpl::extract(const std::filesystem::path& outputDirectory,
     // we could test the archive if we wanted to by calling
     // m_ArchivePtr->test();
 
-    // calculate total size of items in m_Filelist
-    size_t totalFileListByteSize = 0;
-    for (const auto& file : m_FileList) {
-      if (file->isDirectory()) {
-        continue;
-      }
+    // Retrieve the list of indices we want to extract:
+    std::vector<uint32_t> indices;
+    uint64_t totalSize = 0;
 
-      totalFileListByteSize += file->getSize() * file->getOutputFilePaths().size();
+    for (std::size_t i = 0; i < m_FileList.size(); ++i) {
+      auto* fileData = dynamic_cast<FileDataImpl*>(m_FileList[i]);
+      if (!fileData->isEmpty()) {
+        indices.push_back(i);
+        totalSize += fileData->getSize();
+      }
     }
 
-    size_t extractedSize = 0;
+    if (m_ProgressCallback) {
+      m_ArchivePtr->setProgressCallback([this](uint64_t current) {
+        return progressCallbackWrapper(current);
+      });
+    }
 
-    for (auto& fileData : m_FileList) {
-      if (m_ProgressCallback) {
-        m_ProgressCallback(ProgressType::EXTRACTION, extractedSize,
-                           totalFileListByteSize);
-      }
-      if (m_shouldCancel) {
-        m_LastError = Error::ERROR_EXTRACT_CANCELLED;
-        return false;
-      }
+    QTemporaryDir tmpDir;
+    if (!tmpDir.isValid()) {
+      m_LastError = Error::ERROR_OUT_OF_MEMORY;
+      reportError(
+          QStringLiteral("Error creating a temporary directory for extraction"));
+      return false;
+    }
 
+    // extract files into a temporary location
+    native_string tmpDirNative = toNative(tmpDir.path());
+    m_ArchivePtr->extractTo(tmpDirNative, indices);
+
+    // copy files to target locations
+    for (const auto* fileData : m_FileList) {
       // handle directories
       if (fileData->isDirectory()) {
         for (const auto& outputFilePath : fileData->getOutputFilePaths()) {
@@ -338,7 +351,7 @@ bool ArchiveImpl::extract(const std::filesystem::path& outputDirectory,
           if (ec) {
             m_LastError = Error::ERROR_LIBRARY_ERROR;
             reportError(QStringLiteral("Error creating output directory %1: %2")
-                            .arg(targetDirectory.c_str(), ec.message().c_str()));
+                .arg(targetDirectory.c_str(), ec.message().c_str()));
             return false;
           }
         }
@@ -355,20 +368,18 @@ bool ArchiveImpl::extract(const std::filesystem::path& outputDirectory,
           if (ec) {
             m_LastError = Error::ERROR_LIBRARY_ERROR;
             reportError(QStringLiteral("Error creating output directory %1: %2")
-                            .arg(targetDirectory.c_str(), ec.message().c_str()));
+                .arg(targetDirectory.c_str(), ec.message().c_str()));
             return false;
           }
-          try {
-            // extract file
-            std::ofstream ofs(outputDirectory / outputFilePath, ios::binary);
-            ofs.exceptions(std::fstream::failbit);
-            m_ArchivePtr->extractTo(ofs, m_FileMap.at(outputFilePath));
-            extractedSize += fileData->getSize();
-          } catch (const std::ios_base::failure& ex) {
+          // copy file
+          copy_file(tmpDirNative / fileData->getArchiveFilePath(),
+                    outputDirectory / outputFilePath, ec);
+          if (ec) {
             m_LastError = Error::ERROR_LIBRARY_ERROR;
             reportError(
                 QStringLiteral("Error writing to output file %1: %2")
-                    .arg((outputDirectory / outputFilePath).c_str(), ex.what()));
+                .arg((outputDirectory / outputFilePath).string().c_str(),
+                     ec.message().c_str()));
             return false;
           }
         }
