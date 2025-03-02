@@ -253,6 +253,7 @@ void ArchiveImpl::close()
   m_ArchivePtr = nullptr;
   clearFileList();
   m_PasswordCallback = {};
+  m_shouldCancel.store(false);
 }
 
 void ArchiveImpl::clearFileList()
