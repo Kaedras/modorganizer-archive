@@ -38,7 +38,8 @@ static const std::vector<std::filesystem::path> libraryPaths{"dlls/7z.dll"};
 #define TO_NATIVE toStdWString
 #else
 // list of 7z library paths including fallback locations
-static const std::vector<std::filesystem::path> libraryPaths{"lib/lib7zip.so"};
+static const std::vector<std::filesystem::path> libraryPaths{
+    "/usr/lib64/p7zip/7z.so", "/usr/lib/p7zip/7z.so", "lib/7z.so"};
 #define TO_NATIVE toStdString
 #endif
 
