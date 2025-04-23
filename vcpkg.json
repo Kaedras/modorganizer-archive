@@ -1,4 +1,19 @@
 {
   "dependencies": ["7zip", "bit7z"],
-  "builtin-baseline": "65be7019941e1401e02daaba0738cab2c8a4a355"
+  "vcpkg-configuration":
+  {
+    "default-registry": {
+      "kind": "git",
+      "repository": "https://github.com/Microsoft/vcpkg",
+      "baseline": "0ca64b4e1c70fa6d9f53b369b8f3f0843797c20c"
+    },
+    "registries": [
+      {
+        "kind": "git",
+        "repository": "https://github.com/Kaedras/vcpkg-registry",
+        "baseline": "2de2fc0d13504bcd1518a1666817d7a50bd89b47",
+        "packages": ["7zip", "bit7z"]
+      }
+    ]
+  }
 }

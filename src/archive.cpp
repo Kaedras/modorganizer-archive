@@ -302,8 +302,8 @@ bool ArchiveImpl::extract(const std::filesystem::path& outputDirectory,
     if (m_FileChangeCallback) {
       m_FileChangeType = FileChangeType::EXTRACTION_START;
 
-      m_ArchivePtr->setFileCallback([this](tstring&& path) {
-        fileChangeCallbackWrapper(std::forward<tstring>(path));
+      m_ArchivePtr->setFileCallback([this](const tstring& path) {
+        fileChangeCallbackWrapper(std::forward<std::filesystem::path>(path));
       });
     }
 
