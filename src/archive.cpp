@@ -162,7 +162,6 @@ private:
   PasswordCallback m_PasswordCallback;
 
   std::vector<FileData*> m_FileList;
-  std::unordered_map<std::filesystem::path, uint32_t> m_FileMap;
 
   QString m_Password;
 };
@@ -273,7 +272,6 @@ void ArchiveImpl::resetFileList()
   for (const auto& item : *m_ArchivePtr) {
     m_FileList.push_back(
         new FileDataImpl(item.path(), item.size(), item.crc(), item.isDir()));
-    m_FileMap[item.path()] = item.index();
   }
 
   // check if we got a nested archive
