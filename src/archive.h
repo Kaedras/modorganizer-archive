@@ -21,16 +21,27 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #ifndef ARCHIVE_H
 #define ARCHIVE_H
 
+#include "bit7z/bittypes.hpp"
+
 #include <cstdint>
+#include <filesystem>
 #include <functional>
 #include <memory>
 #include <string>
 
 #ifndef DLLEXPORT
 #ifdef MODORGANIZER_ARCHIVE_BUILDING
+#ifdef _WIN32
 #define DLLEXPORT _declspec(dllexport)
 #else
+#define DLLEXPORT __attribute__((visibility("default")))
+#endif
+#else
+#ifdef _WIN32
 #define DLLEXPORT _declspec(dllimport)
+#else
+#define DLLEXPORt
+#endif
 #endif
 #endif
 
@@ -41,7 +52,7 @@ public:
    * @return the path of this entry in the archive (usually relative, unless the archive
    *   contains absolute path).
    */
-  virtual std::wstring getArchiveFilePath() const = 0;
+  virtual std::filesystem::path getArchiveFilePath() const = 0;
 
   /**
    * @return the size of this entry in bytes (uncompressed).
@@ -54,7 +65,7 @@ public:
    *
    * @param filepath The filepath to add, relative to the output folder.
    */
-  virtual void addOutputFilePath(std::wstring const& filepath) = 0;
+  virtual void addOutputFilePath(std::filesystem::path const& filepath) = 0;
 
   /**
    * @brief Retrieve the list of filepaths to extract this entry to.
@@ -62,7 +73,7 @@ public:
    * @return the list of paths this entry should be extracted to, relative to the
    *   output folder.
    */
-  virtual const std::vector<std::wstring>& getOutputFilePaths() const = 0;
+  virtual const std::vector<std::filesystem::path>& getOutputFilePaths() const = 0;
 
   /**
    * @brief Clear the list of output file paths for this entry.
@@ -127,11 +138,12 @@ public:  // Declarations
   /**
    * List of callbacks:
    */
-  using LogCallback        = std::function<void(LogLevel, std::wstring const& log)>;
-  using ProgressCallback   = std::function<void(ProgressType, uint64_t, uint64_t)>;
-  using PasswordCallback   = std::function<std::wstring()>;
-  using FileChangeCallback = std::function<void(FileChangeType, std::wstring const&)>;
-  using ErrorCallback      = std::function<void(std::wstring const&)>;
+  using LogCallback = std::function<void(LogLevel, bit7z::native_string const& log)>;
+  using ProgressCallback = std::function<void(ProgressType, uint64_t, uint64_t)>;
+  using PasswordCallback = std::function<bit7z::native_string()>;
+  using FileChangeCallback =
+      std::function<void(FileChangeType, std::filesystem::path const&)>;
+  using ErrorCallback = std::function<void(bit7z::native_string const&)>;
 
   /**
    *
@@ -190,7 +202,7 @@ public:
    *
    * @return true if the archive was open properly, false otherwise.
    */
-  virtual bool open(std::wstring const& archivePath,
+  virtual bool open(std::filesystem::path const& archivePath,
                     PasswordCallback passwordCallback) = 0;
 
   /**
@@ -219,7 +231,7 @@ public:
    *
    * @return true if the archive was extracted, false otherwise.
    */
-  virtual bool extract(std::wstring const& outputDirectory,
+  virtual bool extract(std::filesystem::path const& outputDirectory,
                        ProgressCallback progressCallback,
                        FileChangeCallback fileChangeCallback,
                        ErrorCallback errorCallback) = 0;
@@ -230,30 +242,32 @@ public:
   virtual void cancel() = 0;
 
   // A bunch of useful overloads (with one or two callbacks):
-  bool extract(std::wstring const& outputDirectory, ErrorCallback errorCallback)
+  bool extract(std::filesystem::path const& outputDirectory,
+               ErrorCallback errorCallback)
   {
     return extract(outputDirectory, {}, {}, errorCallback);
   }
-  bool extract(std::wstring const& outputDirectory, ProgressCallback progressCallback)
+  bool extract(std::filesystem::path const& outputDirectory,
+               ProgressCallback progressCallback)
   {
     return extract(outputDirectory, progressCallback, {}, {});
   }
-  bool extract(std::wstring const& outputDirectory,
+  bool extract(std::filesystem::path const& outputDirectory,
                FileChangeCallback fileChangeCallback)
   {
     return extract(outputDirectory, {}, fileChangeCallback, {});
   }
-  bool extract(std::wstring const& outputDirectory, ProgressCallback progressCallback,
-               ErrorCallback errorCallback)
+  bool extract(std::filesystem::path const& outputDirectory,
+               ProgressCallback progressCallback, ErrorCallback errorCallback)
   {
     return extract(outputDirectory, progressCallback, {}, errorCallback);
   }
-  bool extract(std::wstring const& outputDirectory, ProgressCallback progressCallback,
-               FileChangeCallback fileChangeCallback)
+  bool extract(std::filesystem::path const& outputDirectory,
+               ProgressCallback progressCallback, FileChangeCallback fileChangeCallback)
   {
     return extract(outputDirectory, progressCallback, fileChangeCallback, {});
   }
-  bool extract(std::wstring const& outputDirectory,
+  bool extract(std::filesystem::path const& outputDirectory,
                FileChangeCallback fileChangeCallback, ErrorCallback errorCallback)
   {
     return extract(outputDirectory, {}, fileChangeCallback, errorCallback);
