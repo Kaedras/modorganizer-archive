@@ -21,13 +21,20 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #ifndef ARCHIVE_H
 #define ARCHIVE_H
 
-#include "bit7z/bittypes.hpp"
-
 #include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <memory>
 #include <string>
+
+namespace bit7z
+{
+#ifdef __unix__
+using native_string = std::string;
+#else
+using native_string = std::wstring;
+#endif
+}
 
 #ifndef DLLEXPORT
 #ifdef MODORGANIZER_ARCHIVE_BUILDING
