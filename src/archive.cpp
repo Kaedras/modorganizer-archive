@@ -35,6 +35,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <unordered_map>
 #include <vector>
 
+#ifdef __unix__
+static constexpr const char* libraryPath = "lib/7z.so";
+#else
+static constexpr const char* libraryPath = "dlls/7z";
+#endif
+
 namespace PropID = NArchive::NHandlerPropID;
 
 class FileDataImpl : public FileData
@@ -272,7 +278,7 @@ HRESULT ArchiveImpl::loadFormats()
 }
 
 ArchiveImpl::ArchiveImpl()
-    : m_Valid(false), m_LastError(Error::ERROR_NONE), m_Library("dlls/7z"),
+    : m_Valid(false), m_LastError(Error::ERROR_NONE), m_Library(libraryPath),
       m_PasswordCallback{}
 {
   // Reset the log callback:
