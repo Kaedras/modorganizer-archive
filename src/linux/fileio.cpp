@@ -154,6 +154,21 @@ bool FileOut::SetMTime(const timespec* mTime) noexcept
 {
   return SetTime(nullptr, nullptr, mTime);
 }
+
+bool FileOut::SetMTime(const FILETIME* mTime) noexcept
+{
+  static constexpr int64_t WINDOWS_TICK      = 10000000;
+  static constexpr int64_t SEC_TO_UNIX_EPOCH = 11644473600LL;
+
+  int64_t timeInt =
+      static_cast<int64_t>(mTime->dwHighDateTime) << 32 | mTime->dwLowDateTime;
+  time_t unixTime = timeInt / WINDOWS_TICK - SEC_TO_UNIX_EPOCH;
+
+  timespec time{};
+  time.tv_sec = unixTime;
+  return SetTime(nullptr, nullptr, &time);
+}
+
 bool FileOut::Write(const void* data, UInt32 size, UInt32& processedSize) noexcept
 {
   processedSize = 0;

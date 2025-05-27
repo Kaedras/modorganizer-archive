@@ -205,6 +205,24 @@ PropertyVariant& PropertyVariant::operator=(FILETIME const& n)
   return *this;
 }
 
+// todo: test if this is correct
+template <>
+PropertyVariant& PropertyVariant::operator=(timespec const& n)
+{
+  uint64_t time = 11644473600LL;
+  time += n.tv_sec * 10000000;
+  time += n.tv_nsec;
+
+  FILETIME t;
+  t.dwLowDateTime  = static_cast<uint32_t>(time);
+  t.dwHighDateTime = time >> 32;
+
+  clear();
+  vt       = VT_FILETIME;
+  filetime = t;
+  return *this;
+}
+
 template <>
 PropertyVariant& PropertyVariant::operator=(uint32_t const& n)
 {
