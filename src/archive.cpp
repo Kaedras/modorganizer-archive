@@ -46,14 +46,17 @@ public:
       : m_FileName(fileName), m_Size(size), m_CRC(crc), m_IsDirectory(isDirectory)
   {}
 
-  virtual std::wstring getArchiveFilePath() const override { return m_FileName; }
+  virtual std::filesystem::path getArchiveFilePath() const override
+  {
+    return m_FileName;
+  }
   virtual uint64_t getSize() const override { return m_Size; }
 
-  virtual void addOutputFilePath(std::wstring const& fileName) override
+  virtual void addOutputFilePath(std::filesystem::path const& fileName) override
   {
     m_OutputFilePaths.push_back(fileName);
   }
-  virtual const std::vector<std::wstring>& getOutputFilePaths() const override
+  virtual const std::vector<std::filesystem::path>& getOutputFilePaths() const override
   {
     return m_OutputFilePaths;
   }
@@ -68,7 +71,7 @@ private:
   std::wstring m_FileName;
   UInt64 m_Size;
   UInt64 m_CRC;
-  std::vector<std::wstring> m_OutputFilePaths;
+  std::vector<std::filesystem::path> m_OutputFilePaths;
   bool m_IsDirectory;
 };
 
@@ -93,11 +96,11 @@ public:
     m_LogCallback = logCallback ? logCallback : DefaultLogCallback;
   }
 
-  virtual bool open(std::wstring const& archiveName,
+  virtual bool open(std::filesystem::path const& archiveName,
                     PasswordCallback passwordCallback) override;
   virtual void close() override;
   const std::vector<FileData*>& getFileList() const override { return m_FileList; }
-  virtual bool extract(std::wstring const& outputDirectory,
+  virtual bool extract(std::filesystem::path const& outputDirectory,
                        ProgressCallback progressCallback,
                        FileChangeCallback fileChangeCallback,
                        ErrorCallback errorCallback) override;
@@ -131,7 +134,7 @@ private:
   Error m_LastError;
 
   ALibrary m_Library;
-  std::wstring m_ArchiveName;  // TBH I don't think this is required
+  std::filesystem::path m_ArchiveName;  // TBH I don't think this is required
   CMyComPtr<IInArchive> m_ArchivePtr;
   CArchiveExtractCallback* m_ExtractCallback;
 
@@ -165,8 +168,8 @@ private:
   std::size_t m_MaxSignatureLen = 0;
 };
 
-Archive::LogCallback ArchiveImpl::DefaultLogCallback([](LogLevel, std::wstring const&) {
-});
+Archive::LogCallback
+    ArchiveImpl::DefaultLogCallback([](LogLevel, std::filesystem::path const&) {});
 
 template <typename T>
 T ArchiveImpl::readHandlerProperty(UInt32 index, PROPID propID) const
@@ -311,7 +314,7 @@ ArchiveImpl::~ArchiveImpl()
   close();
 }
 
-bool ArchiveImpl::open(std::wstring const& archiveName,
+bool ArchiveImpl::open(std::filesystem::path const& archiveName,
                        PasswordCallback passwordCallback)
 {
   m_ArchiveName = archiveName;  // Just for debugging, not actually used...
@@ -556,7 +559,7 @@ void ArchiveImpl::resetFileList()
   }
 }
 
-bool ArchiveImpl::extract(std::wstring const& outputDirectory,
+bool ArchiveImpl::extract(std::filesystem::path const& outputDirectory,
                           ProgressCallback progressCallback,
                           FileChangeCallback fileChangeCallback,
                           ErrorCallback errorCallback)

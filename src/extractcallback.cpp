@@ -74,8 +74,8 @@ CArchiveExtractCallback::CArchiveExtractCallback(
     Archive::FileChangeCallback fileChangeCallback,
     Archive::ErrorCallback errorCallback, Archive::PasswordCallback passwordCallback,
     Archive::LogCallback logCallback, IInArchive* archiveHandler,
-    std::wstring const& directoryPath, FileData* const* fileData, std::size_t nbFiles,
-    UInt64 totalFileSize, std::wstring* password)
+    std::filesystem::path const& directoryPath, FileData* const* fileData,
+    std::size_t nbFiles, UInt64 totalFileSize, std::wstring* password)
     : m_ArchiveHandler(archiveHandler), m_Total(0), m_DirectoryPath(),
       m_Extracting(false), m_Canceled(false), m_Timers{}, m_ProcessedFileInfo{},
       m_OutputFileStream{}, m_OutFileStreamCom{}, m_FileData(fileData),
@@ -166,7 +166,8 @@ STDMETHODIMP CArchiveExtractCallback::GetStream(UInt32 index,
     return S_OK;
   }
 
-  std::vector<std::wstring> filenames = m_FileData[index]->getOutputFilePaths();
+  std::vector<std::filesystem::path> filenames =
+      m_FileData[index]->getOutputFilePaths();
   m_FileData[index]->clearOutputFilePaths();
   if (filenames.empty()) {
     return S_OK;

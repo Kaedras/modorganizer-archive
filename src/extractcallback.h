@@ -51,9 +51,9 @@ public:
                           Archive::ErrorCallback errorCallback,
                           Archive::PasswordCallback passwordCallback,
                           Archive::LogCallback logCallback, IInArchive* archiveHandler,
-                          std::wstring const& directoryPath, FileData* const* fileData,
-                          std::size_t nbFiles, UInt64 totalFileSize,
-                          std::wstring* password);
+                          std::filesystem::path const& directoryPath,
+                          FileData* const* fileData, std::size_t nbFiles,
+                          UInt64 totalFileSize, std::wstring* password);
 
   virtual ~CArchiveExtractCallback();
 

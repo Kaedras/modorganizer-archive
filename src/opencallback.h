@@ -73,7 +73,7 @@ private:
   IO::FileInfo m_FileInfo;
 
   bool m_SubArchiveMode;
-  std::wstring m_SubArchiveName;
+  std::filesystem::path m_SubArchiveName;
 };
 
 #endif  // OPENCALLBACK_H

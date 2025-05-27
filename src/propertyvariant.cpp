@@ -21,6 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "propertyvariant.h"
 
 #include <Common/MyGuidDef.h>
+#include <filesystem>
 
 #include <stdexcept>
 #include <stdint.h>
@@ -168,6 +169,18 @@ PropertyVariant& PropertyVariant::operator=(std::wstring const& str)
   clear();
   vt      = VT_BSTR;
   bstrVal = ::SysAllocString(str.c_str());
+  if (bstrVal == NULL) {
+    throw std::bad_alloc();
+  }
+  return *this;
+}
+
+template <>
+PropertyVariant& PropertyVariant::operator=(std::filesystem::path const& path)
+{
+  clear();
+  vt      = VT_BSTR;
+  bstrVal = ::SysAllocString(path.wstring().c_str());
   if (bstrVal == NULL) {
     throw std::bad_alloc();
   }
