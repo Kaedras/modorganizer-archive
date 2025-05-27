@@ -4,8 +4,8 @@
 #include <Common/MyWindows.h>
 #include <filesystem>
 #include <string>
-#include <utility>
 #include <sys/stat.h>
+#include <utility>
 
 namespace IO
 {
@@ -17,7 +17,7 @@ class FileInfo
 {
 public:
   FileInfo() : m_Valid{false}, m_FileInfo() {}
-  FileInfo(std::filesystem::path  path, const struct stat& fileInfo)
+  FileInfo(std::filesystem::path path, const struct stat& fileInfo)
       : m_Valid{true}, m_Path(std::move(path)), m_FileInfo{fileInfo}
   {}
 
@@ -48,7 +48,7 @@ public:
   // bool isTemporary() const { return MatchesMask(FILE_ATTRIBUTE_TEMPORARY); }
 
 private:
-  bool IsType(mode_t type) const { return m_FileInfo.st_mode & S_IFMT == type;}
+  bool IsType(mode_t type) const { return m_FileInfo.st_mode & S_IFMT == type; }
 
   bool m_Valid;
   std::filesystem::path m_Path;
@@ -74,7 +74,8 @@ public:  // Operations
   bool GetPosition(UInt64& position) noexcept;
   bool GetLength(UInt64& length) const noexcept;
 
-  bool Seek(UInt64 distanceToMove, UInt32 moveMethod, UInt64& newPosition) const noexcept;
+  bool Seek(UInt64 distanceToMove, UInt32 moveMethod,
+            UInt64& newPosition) const noexcept;
   bool Seek(UInt64 position, UInt64& newPosition) noexcept;
   bool SeekToBegin() noexcept;
   bool SeekToEnd(UInt64& newPosition) noexcept;
