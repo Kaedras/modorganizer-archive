@@ -70,7 +70,7 @@ struct std::formatter<std::filesystem::path, wchar_t>
   template <typename FormatContext>
   auto format(std::filesystem::path const& path, FormatContext& ctx) const
   {
-    return std::formatter<std::wstring, wchar_t>::format(path.native(), ctx);
+    return std::formatter<std::wstring, wchar_t>::format(path.wstring(), ctx);
   }
 };
 

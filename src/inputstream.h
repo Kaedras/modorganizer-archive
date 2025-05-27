@@ -28,6 +28,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "fileio.h"
 #include "unknown_impl.h"
 
+#ifdef __unix__
+#include "linux/compatibility.h"
+#endif
+
 /** This class implements an input stream for opening archive files
  *
  * Note that the handling on errors could be better.
@@ -44,8 +48,8 @@ public:
 
   bool Open(std::filesystem::path const& filename);
 
-  STDMETHOD(Read)(void* data, UInt32 size, UInt32* processedSize);
-  STDMETHOD(Seek)(Int64 offset, UInt32 seekOrigin, UInt64* newPosition);
+  STDMETHOD(Read)(void* data, UInt32 size, UInt32* processedSize) noexcept;
+  STDMETHOD(Seek)(Int64 offset, UInt32 seekOrigin, UInt64* newPosition) noexcept;
 
 private:
   IO::FileIn m_File;

@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "inputstream.h"
-#include <Unknwn.h>
+#include <Common/MyWindows.h>
 
 static inline HRESULT ConvertBoolToHRESULT(bool result)
 {

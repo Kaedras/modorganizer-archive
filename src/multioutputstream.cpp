@@ -19,10 +19,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "multioutputstream.h"
-#include <Unknwn.h>
+#include <Common/MyUnknown.h>
 
 #include <fcntl.h>
+#ifdef __unix__
+#define FILE_CURRENT SEEK_CUR
+#else
 #include <io.h>
+#endif
 
 static inline HRESULT ConvertBoolToHRESULT(bool result)
 {
@@ -98,7 +102,7 @@ STDMETHODIMP MultiOutputStream::Seek(Int64 offset, UInt32 seekOrigin,
   bool result = true;
   for (auto& file : m_Files) {
     UInt64 realNewPosition;
-    bool result = file.Seek(offset, seekOrigin, realNewPosition);
+    result = file.Seek(offset, seekOrigin, realNewPosition);
     if (newPosition)
       *newPosition = realNewPosition;
   }
@@ -112,7 +116,7 @@ STDMETHODIMP MultiOutputStream::SetSize(UInt64 newSize)
     UInt64 currentPos;
     if (!file.Seek(0, FILE_CURRENT, currentPos))
       return E_FAIL;
-    bool result = file.SetLength(newSize);
+    result = file.SetLength(newSize);
     UInt64 currentPos2;
     result = result && file.Seek(currentPos, currentPos2);
   }

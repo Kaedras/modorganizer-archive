@@ -31,6 +31,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "fileio.h"
 #include "unknown_impl.h"
 
+#ifdef __unix__
+#include "linux/compatibility.h"
+#endif
+
 class CArchiveOpenCallback : public IArchiveOpenCallback,
                              public IArchiveOpenVolumeCallback,
                              public ICryptoGetTextPassword,
@@ -53,12 +57,12 @@ public:
   Z7_IFACE_COM7_IMP(IArchiveOpenVolumeCallback)
 
   // ICryptoGetTextPassword interface
-  STDMETHOD(CryptoGetTextPassword)(BSTR* password);
+  STDMETHOD(CryptoGetTextPassword)(BSTR* password) noexcept;
   // Not implemented STDMETHOD(CryptoGetTextPassword2)(Int32 *passwordIsDefined, BSTR
   // *password);
 
   // IArchiveOpenSetSubArchiveName interface
-  STDMETHOD(SetSubArchiveName)(const wchar_t* name);
+  STDMETHOD(SetSubArchiveName)(const wchar_t* name) noexcept;
 
 private:
   Archive::PasswordCallback m_PasswordCallback;

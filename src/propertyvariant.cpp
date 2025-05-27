@@ -20,15 +20,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "propertyvariant.h"
 
-#include <guiddef.h>
+#include <Common/MyGuidDef.h>
 
 #include <stdexcept>
 #include <stdint.h>
 #include <string>
 
-PropertyVariant::PropertyVariant()
+PropertyVariant::PropertyVariant() : tagPROPVARIANT()
 {
-  PropVariantInit(this);
+  VariantClear(this);
 }
 
 PropertyVariant::~PropertyVariant()
@@ -38,7 +38,7 @@ PropertyVariant::~PropertyVariant()
 
 void PropertyVariant::clear()
 {
-  PropVariantClear(this);
+  VariantClear(this);
 }
 
 // Arguably the behviours for empty here are wrong.

@@ -29,8 +29,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "7zip/Archive/IArchive.h"
 #include "7zip/IPassword.h"
 
-#include <atlbase.h>
-
 #include "archive.h"
 #include "formatter.h"
 #include "instrument.h"
@@ -65,7 +63,7 @@ public:
   Z7_IFACE_COM7_IMP(IArchiveExtractCallback)
 
   // ICryptoGetTextPassword
-  STDMETHOD(CryptoGetTextPassword)(BSTR* aPassword);
+  STDMETHOD(CryptoGetTextPassword)(BSTR* aPassword) noexcept;
 
 private:
   void reportError(const std::wstring& message);
@@ -82,7 +80,7 @@ private:
   bool getProperty(UInt32 index, int property, T* result) const;
 
 private:
-  CComPtr<IInArchive> m_ArchiveHandler;
+  CMyComPtr<IInArchive> m_ArchiveHandler;
 
   UInt64 m_Total;
 
@@ -112,7 +110,7 @@ private:
   } m_ProcessedFileInfo;
 
   MultiOutputStream* m_OutputFileStream;
-  CComPtr<MultiOutputStream> m_OutFileStreamCom;
+  CMyComPtr<MultiOutputStream> m_OutFileStreamCom;
 
   std::vector<std::filesystem::path> m_FullProcessedPaths;
 

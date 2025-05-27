@@ -27,10 +27,18 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <string>
 
 #ifndef DLLEXPORT
+#ifdef __unix__
+#ifdef MODORGANIZER_ARCHIVE_BUILDING
+#define DLLEXPORT __attribute__((visibility("default")))
+#else
+#define DLLEXPORT
+#endif
+#else
 #ifdef MODORGANIZER_ARCHIVE_BUILDING
 #define DLLEXPORT _declspec(dllexport)
 #else
 #define DLLEXPORT _declspec(dllimport)
+#endif
 #endif
 #endif
 

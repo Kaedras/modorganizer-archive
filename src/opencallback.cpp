@@ -19,12 +19,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "opencallback.h"
-#include <Unknwn.h>
+#include <Common/MyCom.h>
+#include <Common/MyUnknown.h>
 
 #include "inputstream.h"
 #include "propertyvariant.h"
-
-#include <atlbase.h>
 
 #include <format>
 #include <memory>
@@ -157,7 +156,7 @@ STDMETHODIMP CArchiveOpenCallback::GetStream(const wchar_t* name, IInStream** in
     return S_FALSE;
   }
 
-  CComPtr<InputStream> inFile(new InputStream);
+  CMyComPtr<InputStream> inFile(new InputStream);
 
   if (!inFile->Open(m_FileInfo.path())) {
     return ::GetLastError();

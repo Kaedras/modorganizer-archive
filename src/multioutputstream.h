@@ -81,10 +81,12 @@ public:
    * @warn If an error happens, the code will not attempt any further writing,
    * so some files might not get written to at all
    */
-  STDMETHOD(Write)(const void* data, UInt32 size, UInt32* processedSize) override;
+  STDMETHOD(Write)(const void* data, UInt32 size,
+                   UInt32* processedSize) noexcept override;
 
-  STDMETHOD(Seek)(Int64 offset, UInt32 seekOrigin, UInt64* newPosition) override;
-  STDMETHOD(SetSize)(UInt64 newSize) override;
+  STDMETHOD(Seek)(Int64 offset, UInt32 seekOrigin,
+                  UInt64* newPosition) noexcept override;
+  STDMETHOD(SetSize)(UInt64 newSize) noexcept override;
   HRESULT GetSize(UInt64* size);
 
 private:

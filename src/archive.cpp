@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "archive.h"
-#include <Unknwn.h>
+#include <Common/MyCom.h>
 
 #include "extractcallback.h"
 #include "inputstream.h"
@@ -132,7 +132,7 @@ private:
 
   ALibrary m_Library;
   std::wstring m_ArchiveName;  // TBH I don't think this is required
-  CComPtr<IInArchive> m_ArchivePtr;
+  CMyComPtr<IInArchive> m_ArchivePtr;
   CArchiveExtractCallback* m_ExtractCallback;
 
   LogCallback m_LogCallback;
@@ -331,14 +331,14 @@ bool ArchiveImpl::open(std::wstring const& archiveName,
   // need to hold on to the callback for now
   m_PasswordCallback = passwordCallback;
 
-  CComPtr<InputStream> file(new InputStream);
+  CMyComPtr<InputStream> file(new InputStream);
 
   if (!file->Open(filepath)) {
     m_LastError = Error::ERROR_FAILED_TO_OPEN_ARCHIVE;
     return false;
   }
 
-  CComPtr<CArchiveOpenCallback> openCallbackPtr;
+  CMyComPtr<CArchiveOpenCallback> openCallbackPtr;
   try {
     openCallbackPtr =
         new CArchiveOpenCallback(passwordCallback, m_LogCallback, filepath);
@@ -381,7 +381,7 @@ bool ArchiveImpl::open(std::wstring const& archiveName,
 
           // Retrieve the extension (warning: .extension() contains the dot):
           std::wstring ext =
-              ArchiveStrings::towlower(filepath.extension().native().substr(1));
+              ArchiveStrings::towlower(filepath.extension().wstring().substr(1));
           std::wistringstream s(signatureInfo.second.m_Extensions);
           std::wstring t;
           bool found = false;
@@ -416,7 +416,7 @@ bool ArchiveImpl::open(std::wstring const& archiveName,
     // determine archive type based on extension
     Formats const* formats = nullptr;
     std::wstring ext =
-        ArchiveStrings::towlower(filepath.extension().native().substr(1));
+        ArchiveStrings::towlower(filepath.extension().wstring().substr(1));
     FormatMap::const_iterator map_iter = m_FormatMap.find(ext);
     if (map_iter != m_FormatMap.end()) {
       formats = &map_iter->second;

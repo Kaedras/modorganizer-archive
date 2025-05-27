@@ -18,7 +18,7 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <Unknwn.h>
+#include <Common/MyCom.h>
 
 #include <filesystem>
 #include <format>
@@ -229,7 +229,7 @@ STDMETHODIMP CArchiveExtractCallback::GetStream(UInt32 index,
                              m_TotalFileSize);
         }
       });
-      CComPtr<MultiOutputStream> outStreamCom(m_OutputFileStream);
+      CMyComPtr<MultiOutputStream> outStreamCom(m_OutputFileStream);
 
       if (!m_OutputFileStream->Open(m_FullProcessedPaths)) {
         reportError(L"cannot open output file '{}': {}", m_FullProcessedPaths[0],
@@ -294,6 +294,10 @@ STDMETHODIMP CArchiveExtractCallback::SetOperationResult(Int32 operationResult)
 
   auto guard = m_Timers.SetOperationResult.SetFileAttributesW.instrument();
   if (m_Extracting && m_ProcessedFileInfo.AttribDefined) {
+#ifdef __unix__
+    fprintf(stderr, "warning: attributes are defined, but handling them has not been "
+                    "implemented yet");
+#else
     // this is moderately annoying. I can't do this on the file handle because if
     // the file in question is a directory there isn't a file handle.
     // Also I'd like to convert the attributes to QT attributes but I'm not sure
@@ -307,6 +311,7 @@ STDMETHODIMP CArchiveExtractCallback::SetOperationResult(Int32 operationResult)
       // Should probably log any errors here somehow
       ::SetFileAttributesW(fn.c_str(), m_ProcessedFileInfo.Attrib);
     }
+#endif
   }
 
   return S_OK;

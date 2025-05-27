@@ -21,7 +21,25 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #ifndef ARCHIVE_LIBRARY_H
 #define ARCHIVE_LIBRARY_H
 
-#include <Windows.h>
+#ifdef __unix__
+#define ERROR_SUCCESS EXIT_SUCCESS
+#include <dlfcn.h>
+inline void* LoadLibraryA(const char* path)
+{
+  return dlopen(path, RTLD_LAZY);
+}
+inline void FreeLibrary(void* handle)
+{
+  dlclose(handle);
+}
+inline void* GetProcAddress(void* handle, const char* procName)
+{
+  return dlsym(handle, procName);
+}
+using HMODULE = void*;
+#endif
+
+#include <Common/MyWindows.h>
 
 /**
  * Very small wrapper around Windows DLLs functions.
