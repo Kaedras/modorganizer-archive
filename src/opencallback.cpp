@@ -102,7 +102,7 @@ STDMETHODIMP CArchiveOpenCallback::GetProperty(PROPID propID, PROPVARIANT* value
     } else {
       // Note: Need to call .native(), otherwize we get a link error because we try to
       // assign a fs::path to the variant.
-      prop = m_Path.filename().native();
+      prop = m_Path.filename().wstring();
     }
   } break;
 
