@@ -296,8 +296,12 @@ STDMETHODIMP CArchiveExtractCallback::SetOperationResult(Int32 operationResult)
   auto guard = m_Timers.SetOperationResult.SetFileAttributesW.instrument();
   if (m_Extracting && m_ProcessedFileInfo.AttribDefined) {
 #ifdef __unix__
-    fprintf(stderr, "warning: attributes are defined, but handling them has not been "
-                    "implemented yet");
+    static bool printedWarning = false;
+    if (!printedWarning) {
+      fprintf(stderr, "warning: attributes are defined, but handling them has not been "
+                      "implemented yet\n");
+      printedWarning = true;
+    }
 #else
     // this is moderately annoying. I can't do this on the file handle because if
     // the file in question is a directory there isn't a file handle.
