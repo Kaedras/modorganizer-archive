@@ -11,7 +11,20 @@ env:
 
 jobs:
   build:
-    runs-on: windows-2022
+    strategy:
+      max-parallel: 2
+      fail-fast: false
+      matrix:
+        os: [ windows-2022, ubuntu-24.04 ]
+        include:
+          - os: windows-2022
+            preset: vs2022-windows-shared
+            build_dir: vsbuild
+          - os: ubuntu-24.04
+            preset: linux-shared
+            build_dir: build
+
+    runs-on: ${{ matrix.os }}
     steps:
       # set VCPKG Root
       - name: "Set environmental variables"
@@ -22,15 +35,14 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Configure Archive build
-        shell: pwsh
         run: |
-          cmake --preset vs2022-windows-shared "-DCMAKE_INSTALL_PREFIX=install"
+          cmake --preset ${{ matrix.preset }} "-DCMAKE_INSTALL_PREFIX=install"
 
       - name: Build Archive
-        run: cmake --build vsbuild --config RelWithDebInfo
+        run: cmake --build ${{ matrix.build_dir }} --config RelWithDebInfo
 
       - name: Install Archive
-        run: cmake --install vsbuild --config RelWithDebInfo
+        run: cmake --install ${{ matrix.build_dir }} --config RelWithDebInfo
 
       - name: Upload Archive artifact
         uses: actions/upload-artifact@master
