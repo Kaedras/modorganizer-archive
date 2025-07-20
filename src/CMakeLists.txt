@@ -4,6 +4,12 @@ find_package(7zip CONFIG REQUIRED)
 
 add_library(archive)
 
+if (UNIX)
+	set(os_name "linux")
+else ()
+	set(os_name "win32")
+endif ()
+
 set_target_properties(archive PROPERTIES CXX_STANDARD 20)
 target_link_libraries(archive PRIVATE 7zip::7zip)
 
@@ -12,8 +18,8 @@ target_sources(archive
 		archive.cpp
 		extractcallback.cpp
 		extractcallback.h
-		fileio.cpp
-		fileio.h
+		${os_name}/fileio.cpp
+		${os_name}/fileio.h
 		formatter.h
 		inputstream.cpp
 		inputstream.h
@@ -50,6 +56,16 @@ if (MSVC)
 	)
 
 	set_target_properties(archive PROPERTIES VS_STARTUP_PROJECT archive)
+else ()
+	target_compile_options(archive
+		PRIVATE
+		"-Wall"
+		"-Wextra"
+	)
+	target_link_options(archive
+		PRIVATE
+		$<$<CONFIG:RelWithDebInfo>:-flto=auto>
+	)
 endif()
 
 if (BUILD_STATIC)
@@ -61,7 +77,7 @@ endif()
 add_library(mo2::archive ALIAS archive)
 
 install(TARGETS archive EXPORT archiveTargets FILE_SET HEADERS)
-if (NOT BUILD_STATIC)
+if (WIN32 AND NOT BUILD_STATIC)
 	install(FILES $<TARGET_PDB_FILE:archive> DESTINATION pdb OPTIONAL)
 endif()
 install(EXPORT archiveTargets
