@@ -38,7 +38,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #ifdef __unix__
 static constexpr const char* libraryPath = "lib/7z.so";
 #else
-static constexpr const char* libraryPath = "dlls/7z";
+static constexpr const char* libraryPath = "dlls/7zip.dll";
 #endif
 
 namespace PropID = NArchive::NHandlerPropID;
@@ -174,8 +174,8 @@ private:
   std::size_t m_MaxSignatureLen = 0;
 };
 
-Archive::LogCallback
-    ArchiveImpl::DefaultLogCallback([](LogLevel, std::filesystem::path const&) {});
+Archive::LogCallback ArchiveImpl::DefaultLogCallback([](LogLevel, std::wstring const&) {
+});
 
 template <typename T>
 T ArchiveImpl::readHandlerProperty(UInt32 index, PROPID propID) const
@@ -351,7 +351,7 @@ bool ArchiveImpl::open(std::filesystem::path const& archiveName,
   try {
     openCallbackPtr =
         new CArchiveOpenCallback(passwordCallback, m_LogCallback, filepath);
-  } catch (std::runtime_error const& ex) {
+  } catch (std::runtime_error const&) {
     m_LastError = Error::ERROR_FAILED_TO_OPEN_ARCHIVE;
     return false;
   }
@@ -577,7 +577,7 @@ bool ArchiveImpl::extract(std::filesystem::path const& outputDirectory,
   for (std::size_t i = 0; i < m_FileList.size(); ++i) {
     FileDataImpl* fileData = static_cast<FileDataImpl*>(m_FileList[i]);
     if (!fileData->isEmpty()) {
-      indices.push_back(i);
+      indices.push_back(static_cast<UInt32>(i));
       totalSize += fileData->getSize();
     }
   }

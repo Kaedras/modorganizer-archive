@@ -116,9 +116,9 @@ STDMETHODIMP MultiOutputStream::SetSize(UInt64 newSize)
     UInt64 currentPos;
     if (!file.Seek(0, FILE_CURRENT, currentPos))
       return E_FAIL;
-    result = file.SetLength(newSize);
+    bool cresult = file.SetLength(newSize);
     UInt64 currentPos2;
-    result = result && file.Seek(currentPos, currentPos2);
+    result = result && cresult && file.Seek(currentPos, currentPos2);
   }
   return result ? S_OK : E_FAIL;
 }

@@ -52,13 +52,13 @@ CArchiveOpenCallback::CArchiveOpenCallback(Archive::PasswordCallback passwordCal
 
 /* -------------------- IArchiveOpenCallback -------------------- */
 STDMETHODIMP CArchiveOpenCallback::SetTotal(const UInt64* UNUSED(files),
-                                            const UInt64* UNUSED(bytes))
+                                            const UInt64* UNUSED(bytes)) throw()
 {
   return S_OK;
 }
 
 STDMETHODIMP CArchiveOpenCallback::SetCompleted(const UInt64* UNUSED(files),
-                                                const UInt64* UNUSED(bytes))
+                                                const UInt64* UNUSED(bytes)) throw()
 {
   return S_OK;
 }
@@ -89,7 +89,8 @@ STDMETHODIMP CArchiveOpenCallback::SetSubArchiveName(const wchar_t* name)
 
 /* -------------------- IArchiveOpenVolumeCallback -------------------- */
 
-STDMETHODIMP CArchiveOpenCallback::GetProperty(PROPID propID, PROPVARIANT* value)
+STDMETHODIMP CArchiveOpenCallback::GetProperty(PROPID propID,
+                                               PROPVARIANT* value) throw()
 {
   // A scan of the source code indicates that the only things that ever call the
   // IArchiveOpenVolumeCallback interface ask for the file name and size.
@@ -132,7 +133,8 @@ STDMETHODIMP CArchiveOpenCallback::GetProperty(PROPID propID, PROPVARIANT* value
   return S_OK;
 }
 
-STDMETHODIMP CArchiveOpenCallback::GetStream(const wchar_t* name, IInStream** inStream)
+STDMETHODIMP CArchiveOpenCallback::GetStream(const wchar_t* name,
+                                             IInStream** inStream) throw()
 {
   *inStream = nullptr;
 
