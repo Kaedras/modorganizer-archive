@@ -79,8 +79,8 @@ CArchiveExtractCallback::CArchiveExtractCallback(
     : m_ArchiveHandler(archiveHandler), m_Total(0), m_DirectoryPath(),
       m_Extracting(false), m_Canceled(false), m_Timers{}, m_ProcessedFileInfo{},
       m_OutputFileStream{}, m_OutFileStreamCom{}, m_FileData(fileData),
-      m_NbFiles(nbFiles), m_TotalFileSize(totalFileSize), m_ExtractedFileSize(0),
-      m_LastCallbackFileSize(0), m_ProgressCallback(progressCallback),
+      m_NbFiles(nbFiles), m_TotalFileSize(totalFileSize), m_LastCallbackFileSize(0),
+      m_ExtractedFileSize(0), m_ProgressCallback(progressCallback),
       m_FileChangeCallback(fileChangeCallback), m_ErrorCallback(errorCallback),
       m_PasswordCallback(passwordCallback), m_LogCallback(logCallback),
       m_Password(password)
@@ -281,19 +281,20 @@ STDMETHODIMP CArchiveExtractCallback::SetOperationResult(Int32 operationResult) 
 
   if (m_OutFileStreamCom) {
     if (m_ProcessedFileInfo.MTimeDefined) {
-      auto guard = m_Timers.SetOperationResult.SetMTime.instrument();
+      [[maybe_unused]] auto guard = m_Timers.SetOperationResult.SetMTime.instrument();
       m_OutputFileStream->SetMTime(&m_ProcessedFileInfo.MTime);
     }
-    auto guard = m_Timers.SetOperationResult.Close.instrument();
+    [[maybe_unused]] auto guard = m_Timers.SetOperationResult.Close.instrument();
     RINOK(m_OutputFileStream->Close())
   }
 
   {
-    auto guard = m_Timers.SetOperationResult.Release.instrument();
+    [[maybe_unused]] auto guard = m_Timers.SetOperationResult.Release.instrument();
     m_OutFileStreamCom.Release();
   }
 
-  auto guard = m_Timers.SetOperationResult.SetFileAttributesW.instrument();
+  [[maybe_unused]] auto guard =
+      m_Timers.SetOperationResult.SetFileAttributesW.instrument();
   if (m_Extracting && m_ProcessedFileInfo.AttribDefined) {
 #ifdef __unix__
     static bool printedWarning = false;
@@ -322,7 +323,7 @@ STDMETHODIMP CArchiveExtractCallback::SetOperationResult(Int32 operationResult) 
   return S_OK;
 }
 
-STDMETHODIMP CArchiveExtractCallback::CryptoGetTextPassword(BSTR* passwordOut)
+STDMETHODIMP CArchiveExtractCallback::CryptoGetTextPassword(BSTR* passwordOut) noexcept
 {
   // if we've already got a password, don't ask again (and again...)
   if (m_Password->empty() && m_PasswordCallback) {

@@ -39,7 +39,7 @@ bool FileBase::GetLength(UInt64& length) const noexcept
 bool FileBase::Seek(UInt64 distanceToMove, UInt32 moveMethod,
                     UInt64& newPosition) const noexcept
 {
-  UInt64 result = lseek(m_fd, distanceToMove, moveMethod);
+  off_t result = lseek(m_fd, distanceToMove, moveMethod);
   if (result == -1) {
     return false;
   }
@@ -140,7 +140,7 @@ bool FileOut::SetTime(const timespec* cTime, const timespec* aTime,
                       const timespec* mTime) noexcept
 {
 
-  struct stat info;
+  struct stat info{};
   fstat(m_fd, &info);
 
   timespec times[2];
@@ -208,7 +208,7 @@ bool FileOut::WritePart(const void* data, UInt32 size, UInt32& processedSize) no
 {
   if (size > kChunkSizeMax)
     size = kChunkSizeMax;
-  UInt32 processedLoc = write(m_fd, data, size);
+  ssize_t processedLoc = write(m_fd, data, size);
   if (processedLoc == -1) {
     return false;
   }

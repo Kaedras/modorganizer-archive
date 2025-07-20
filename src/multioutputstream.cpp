@@ -71,7 +71,7 @@ bool MultiOutputStream::Open(std::vector<std::filesystem::path> const& filepaths
 }
 
 STDMETHODIMP MultiOutputStream::Write(const void* data, UInt32 size,
-                                      UInt32* processedSize)
+                                      UInt32* processedSize) noexcept
 {
   bool update_processed(true);
   for (auto& file : m_Files) {
@@ -94,7 +94,7 @@ STDMETHODIMP MultiOutputStream::Write(const void* data, UInt32 size,
 }
 
 STDMETHODIMP MultiOutputStream::Seek(Int64 offset, UInt32 seekOrigin,
-                                     UInt64* newPosition)
+                                     UInt64* newPosition) noexcept
 {
   if (seekOrigin >= 3)
     return STG_E_INVALIDFUNCTION;
@@ -109,7 +109,7 @@ STDMETHODIMP MultiOutputStream::Seek(Int64 offset, UInt32 seekOrigin,
   return ConvertBoolToHRESULT(result);
 }
 
-STDMETHODIMP MultiOutputStream::SetSize(UInt64 newSize)
+STDMETHODIMP MultiOutputStream::SetSize(UInt64 newSize) noexcept
 {
   bool result = true;
   for (auto& file : m_Files) {

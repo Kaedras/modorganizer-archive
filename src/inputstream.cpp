@@ -42,7 +42,7 @@ bool InputStream::Open(std::filesystem::path const& filename)
   return m_File.Open(filename);
 }
 
-STDMETHODIMP InputStream::Read(void* data, UInt32 size, UInt32* processedSize)
+STDMETHODIMP InputStream::Read(void* data, UInt32 size, UInt32* processedSize) noexcept
 {
   UInt32 realProcessedSize;
   bool result = m_File.Read(data, size, realProcessedSize);
@@ -58,7 +58,8 @@ STDMETHODIMP InputStream::Read(void* data, UInt32 size, UInt32* processedSize)
   return HRESULT_FROM_WIN32(::GetLastError());
 }
 
-STDMETHODIMP InputStream::Seek(Int64 offset, UInt32 seekOrigin, UInt64* newPosition)
+STDMETHODIMP InputStream::Seek(Int64 offset, UInt32 seekOrigin,
+                               UInt64* newPosition) noexcept
 {
   UInt64 realNewPosition = offset;
   bool result            = m_File.Seek(offset, seekOrigin, realNewPosition);

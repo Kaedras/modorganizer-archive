@@ -68,7 +68,7 @@ STDMETHODIMP CArchiveOpenCallback::SetCompleted(const UInt64* UNUSED(files),
  * archive it doesn't seem to be called. There is also another API which isn't
  * implemented.
  */
-STDMETHODIMP CArchiveOpenCallback::CryptoGetTextPassword(BSTR* passwordOut)
+STDMETHODIMP CArchiveOpenCallback::CryptoGetTextPassword(BSTR* passwordOut) noexcept
 {
   if (!m_PasswordCallback) {
     return E_ABORT;
@@ -80,7 +80,7 @@ STDMETHODIMP CArchiveOpenCallback::CryptoGetTextPassword(BSTR* passwordOut)
 
 /* -------------------- IArchiveOpenSetSubArchiveName -------------------- */
 /* I don't know what this does or how you call it. */
-STDMETHODIMP CArchiveOpenCallback::SetSubArchiveName(const wchar_t* name)
+STDMETHODIMP CArchiveOpenCallback::SetSubArchiveName(const wchar_t* name) noexcept
 {
   m_SubArchiveMode = true;
   m_SubArchiveName = name;

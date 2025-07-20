@@ -48,7 +48,7 @@ public:
   // bool isTemporary() const { return MatchesMask(FILE_ATTRIBUTE_TEMPORARY); }
 
 private:
-  bool IsType(mode_t type) const { return m_FileInfo.st_mode & S_IFMT == type; }
+  bool IsType(mode_t type) const { return (m_FileInfo.st_mode & S_IFMT) == type; }
 
   bool m_Valid;
   std::filesystem::path m_Path;
