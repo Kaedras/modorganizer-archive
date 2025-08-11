@@ -23,8 +23,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <Common/MyGuidDef.h>
 #include <filesystem>
 
+#include <cstdint>
 #include <stdexcept>
-#include <stdint.h>
 #include <string>
 
 #ifdef __unix__
