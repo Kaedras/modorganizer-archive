@@ -20,9 +20,11 @@ jobs:
           - os: windows-2022
             preset: vs2022-windows-shared
             build_dir: vsbuild
+            os_name: windows
           - os: ubuntu-24.04
             preset: linux-shared
             build_dir: build
+            os_name: linux
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -47,5 +49,5 @@ jobs:
       - name: Upload Archive artifact
         uses: actions/upload-artifact@master
         with:
-          name: archive
+          name: archive_${{ matrix.os_name }}
           path: ./install
