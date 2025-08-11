@@ -27,9 +27,23 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <stdint.h>
 #include <string>
 
+#ifdef __unix__
+namespace
+{
+HRESULT PropVariantInit(VARIANTARG* prop)
+{
+  return VariantClear(prop);
+}
+HRESULT PropVariantClear(VARIANTARG* prop)
+{
+  return VariantClear(prop);
+}
+}  // namespace
+#endif
+
 PropertyVariant::PropertyVariant() : tagPROPVARIANT()
 {
-  VariantClear(this);
+  PropVariantInit(this);
 }
 
 PropertyVariant::~PropertyVariant()
@@ -39,7 +53,7 @@ PropertyVariant::~PropertyVariant()
 
 void PropertyVariant::clear()
 {
-  VariantClear(this);
+  PropVariantClear(this);
 }
 
 // Arguably the behviours for empty here are wrong.
