@@ -461,7 +461,7 @@ bool ArchiveImpl::open(std::filesystem::path const& archiveName,
           }
         } else if (sigMismatch) {
           std::vector<std::wstring> vformats;
-          for (ArchiveFormatInfo format : *formats) {
+          for (const ArchiveFormatInfo& format : *formats) {
             vformats.push_back(format.m_Name);
           }
           m_LogCallback(
@@ -479,7 +479,7 @@ bool ArchiveImpl::open(std::filesystem::path const& archiveName,
     m_LogCallback(
         LogLevel::Debug,
         L"Attempting to open the file with the remaining formats as a fallback...");
-    for (auto format : formatList) {
+    for (const auto& format : formatList) {
       if (m_CreateObjectFunc(&format.m_ClassID, &IID_IInArchive,
                              (void**)&m_ArchivePtr) != S_OK) {
         m_LastError = Error::ERROR_LIBRARY_ERROR;
