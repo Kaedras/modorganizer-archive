@@ -1,5 +1,7 @@
 #include "fileio.h"
 
+#include <algorithm>
+#include <array>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/time.h>
@@ -10,6 +12,33 @@ namespace IO
 {
 
 // FileBase
+
+bool FileInfo::isReadOnly() const
+{
+  struct stat info;
+  stat(m_Path.c_str(), &info);
+  mode_t perm = info.st_mode;
+
+  return (perm & S_IRUSR) && !(perm & S_IWUSR);
+}
+
+bool FileInfo::isSystem() const
+{
+  // check owner
+  struct stat info;
+  stat(m_Path.c_str(), &info);
+  if (info.st_uid == 0 || info.st_gid == 0) {
+    return true;
+  }
+
+  // check path
+  static constexpr std::array paths{"/bin",   "/boot", "/dev",  "/etc", "/lib",
+                                    "/lib64", "/proc", "/sbin", "/sys", "/usr"};
+  std::string const& filePath = m_Path.string();
+  return std::ranges::any_of(paths, [&](auto const& path) {
+    return filePath.starts_with(path);
+  });
+}
 
 bool FileBase::Close() noexcept
 {

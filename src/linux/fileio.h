@@ -34,17 +34,17 @@ public:
   uint32_t numberOfLinks() const { return m_FileInfo.st_nlink; }
   uint64_t fileIndex() const { return m_FileInfo.st_ino; }
 
-  // bool isArchived() const { return MatchesMask(FILE_ATTRIBUTE_ARCHIVE); }
-  // bool isCompressed() const { return MatchesMask(FILE_ATTRIBUTE_COMPRESSED); }
+  bool isArchived() const { return false; }
+  bool isCompressed() const { return false; }
   bool isDir() const { return IsType(S_IFDIR); }
   // bool isEncrypted() const { return MatchesMask(FILE_ATTRIBUTE_ENCRYPTED); }
   bool isHidden() const { return m_Path.filename().string().starts_with("."); }
   bool isNormal() const { return IsType(S_IFREG); }
   // bool isOffline() const { return MatchesMask(FILE_ATTRIBUTE_OFFLINE); }
-  // bool isReadOnly() const { return MatchesMask(FILE_ATTRIBUTE_READONLY); }
+  bool isReadOnly() const;
   // bool iasReparsePoint() const { return MatchesMask(FILE_ATTRIBUTE_REPARSE_POINT); }
   // bool isSparse() const { return MatchesMask(FILE_ATTRIBUTE_SPARSE_FILE); }
-  // bool isSystem() const { return MatchesMask(FILE_ATTRIBUTE_SYSTEM); }
+  bool isSystem() const;
   // bool isTemporary() const { return MatchesMask(FILE_ATTRIBUTE_TEMPORARY); }
 
 private:
