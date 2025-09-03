@@ -1,21 +1,31 @@
 /*
 Mod Organizer archive handling
 
-Copyright (C) 2012 Sebastian Herbord, 2020 MO2 Team. All rights reserved.
+Copyright (C) 2012 Sebastian Herbord, 2020 MO2 Team.
+ * All rights reserved.
 
-This library is free software; you can redistribute it and/or
+This library is free software; you can redistribute it
+ * and/or
 modify it under the terms of the GNU Lesser General Public
-License as published by the Free Software Foundation; either
-version 3 of the License, or (at your option) any later version.
+License as
+ * published by the Free Software Foundation; either
+version 3 of the License, or (at
+ * your option) any later version.
 
-This library is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
+This library is distributed in the hope that it will
+ * be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty
+ * of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-Lesser General Public License for more details.
+Lesser General
+ * Public License for more details.
 
-You should have received a copy of the GNU Lesser General Public
-License along with this library; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+You should have received a copy of the GNU Lesser
+ * General Public
+License along with this library; if not, write to the Free
+ * Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+ * USA
 */
 
 #ifndef ARCHIVE_H
@@ -47,7 +57,8 @@ class FileData
 {
 public:
   /**
-   * @return the path of this entry in the archive (usually relative, unless the archive
+   * @return the path of this entry in the archive (usually relative, unless the
+   * archive
    *   contains absolute path).
    */
   virtual std::filesystem::path getArchiveFilePath() const = 0;
@@ -59,17 +70,21 @@ public:
 
   /**
    * @brief Add the given filepath to the list of files to create from this
-   *   entry when extracting.
    *
-   * @param filepath The filepath to add, relative to the output folder.
+   * entry when extracting.
+   *
+   * @param filepath The filepath to add, relative to
+   * the output folder.
    */
   virtual void addOutputFilePath(std::filesystem::path const& filepath) = 0;
 
   /**
    * @brief Retrieve the list of filepaths to extract this entry to.
    *
+   *
    * @return the list of paths this entry should be extracted to, relative to the
-   *   output folder.
+   *
+   * output folder.
    */
   virtual const std::vector<std::filesystem::path>& getOutputFilePaths() const = 0;
 
@@ -143,7 +158,7 @@ public:  // Declarations
   using PasswordCallback = std::function<std::wstring()>;
   using FileChangeCallback =
       std::function<void(FileChangeType, std::filesystem::path const&)>;
-  using ErrorCallback = std::function<void(std::filesystem::path const&)>;
+  using ErrorCallback = std::function<void(std::wstring const&)>;
 
   /**
    *
