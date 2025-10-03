@@ -69,32 +69,10 @@
         "VCPKG_TARGET_TRIPLET": {
           "type": "STRING",
           "value": "x64-linux"
-        },
-        "BUILD_SHARED_LIBS": {
-          "type": "BOOL",
-          "value": "OFF"
         }
       },
       "generator": "Ninja Multi-Config",
       "inherits": ["cmake-dev", "vcpkg"],
-      "name": "linux-static"
-    },
-    {
-      "cacheVariables": {
-        "BUILD_SHARED_LIBS": {
-          "type": "BOOL",
-          "value": "ON"
-        },
-        "VCPKG_TARGET_TRIPLET": {
-          "type": "STRING",
-          "value": "x64-linux-dynamic"
-        }
-      },
-      "inherits": "linux-static",
-      "name": "linux-shared"
-    },
-    {
-      "inherits": "linux-shared",
       "name": "linux"
     }
   ],
