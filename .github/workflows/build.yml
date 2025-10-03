@@ -22,7 +22,7 @@ jobs:
             build_dir: vsbuild
             os_name: windows
           - os: ubuntu-24.04
-            preset: linux-shared
+            preset: linux
             build_dir: build
             os_name: linux
 
