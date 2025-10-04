@@ -36,7 +36,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <vector>
 
 #ifdef __unix__
-static constexpr const char* libraryPath = "lib/7z.so";
+static constexpr const char* libraryPath = "lib/lib7zip.so";
 #else
 static constexpr const char* libraryPath = "dlls/7zip.dll";
 #endif
