@@ -155,8 +155,8 @@ STDMETHODIMP CArchiveExtractCallback::GetStream(UInt32 index,
                                                 ISequentialOutStream** outStream,
                                                 Int32 askExtractMode) noexcept
 {
-  auto guard   = m_Timers.GetStream.instrument();
-  namespace fs = std::filesystem;
+  [[maybe_unused]] auto guard = m_Timers.GetStream.instrument();
+  namespace fs                = std::filesystem;
 
   *outStream = nullptr;
   m_OutFileStreamCom.Release();
