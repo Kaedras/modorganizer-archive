@@ -48,8 +48,9 @@ public:
 
   bool Open(std::filesystem::path const& filename);
 
-  STDMETHOD(Read)(void* data, UInt32 size, UInt32* processedSize) noexcept;
-  STDMETHOD(Seek)(Int64 offset, UInt32 seekOrigin, UInt64* newPosition) noexcept;
+  STDMETHOD(Read)(void* data, UInt32 size, UInt32* processedSize) noexcept override;
+  STDMETHOD(Seek)(Int64 offset, UInt32 seekOrigin,
+                  UInt64* newPosition) noexcept override;
 
 private:
   IO::FileIn m_File;
