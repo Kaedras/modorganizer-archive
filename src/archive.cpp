@@ -415,10 +415,11 @@ bool ArchiveImpl::open(std::filesystem::path const& archiveName,
         // Sadly, the 7zip API documentation is pretty well non-existant.
         break;
       }
-      std::vector<ArchiveFormatInfo>::iterator iter = std::find_if(
-          formatList.begin(), formatList.end(), [=](ArchiveFormatInfo a) -> bool {
-            return a.m_Name == signatureInfo.second.m_Name;
-          });
+      std::vector<ArchiveFormatInfo>::iterator iter =
+          std::find_if(formatList.begin(), formatList.end(),
+                       [=](const ArchiveFormatInfo& a) -> bool {
+                         return a.m_Name == signatureInfo.second.m_Name;
+                       });
       if (iter != formatList.end())
         formatList.erase(iter);
     }
@@ -455,10 +456,11 @@ bool ArchiveImpl::open(std::filesystem::path const& archiveName,
               break;
             }
 
-            std::vector<ArchiveFormatInfo>::iterator iter = std::find_if(
-                formatList.begin(), formatList.end(), [=](ArchiveFormatInfo a) -> bool {
-                  return a.m_Name == format.m_Name;
-                });
+            std::vector<ArchiveFormatInfo>::iterator iter =
+                std::find_if(formatList.begin(), formatList.end(),
+                             [=](const ArchiveFormatInfo& a) -> bool {
+                               return a.m_Name == format.m_Name;
+                             });
             if (iter != formatList.end())
               formatList.erase(iter);
           }
