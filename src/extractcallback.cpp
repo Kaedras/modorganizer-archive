@@ -104,13 +104,13 @@ CArchiveExtractCallback::~CArchiveExtractCallback()
 #endif
 }
 
-STDMETHODIMP CArchiveExtractCallback::SetTotal(UInt64 size) throw()
+STDMETHODIMP CArchiveExtractCallback::SetTotal(UInt64 size) noexcept
 {
   m_Total = size;
   return S_OK;
 }
 
-STDMETHODIMP CArchiveExtractCallback::SetCompleted(const UInt64* completed) throw()
+STDMETHODIMP CArchiveExtractCallback::SetCompleted(const UInt64* completed) noexcept
 {
   if (m_ProgressCallback) {
     m_ProgressCallback(Archive::ProgressType::ARCHIVE, *completed, m_Total);
@@ -151,7 +151,7 @@ bool CArchiveExtractCallback::getProperty(UInt32 index, int property, T* result)
 
 STDMETHODIMP CArchiveExtractCallback::GetStream(UInt32 index,
                                                 ISequentialOutStream** outStream,
-                                                Int32 askExtractMode) throw()
+                                                Int32 askExtractMode) noexcept
 {
   auto guard   = m_Timers.GetStream.instrument();
   namespace fs = std::filesystem;
@@ -264,7 +264,7 @@ STDMETHODIMP CArchiveExtractCallback::GetStream(UInt32 index,
   return E_FAIL;
 }
 
-STDMETHODIMP CArchiveExtractCallback::PrepareOperation(Int32 askExtractMode) throw()
+STDMETHODIMP CArchiveExtractCallback::PrepareOperation(Int32 askExtractMode) noexcept
 {
   if (m_Canceled) {
     return E_ABORT;
@@ -273,7 +273,7 @@ STDMETHODIMP CArchiveExtractCallback::PrepareOperation(Int32 askExtractMode) thr
   return S_OK;
 }
 
-STDMETHODIMP CArchiveExtractCallback::SetOperationResult(Int32 operationResult) throw()
+STDMETHODIMP CArchiveExtractCallback::SetOperationResult(Int32 operationResult) noexcept
 {
   if (operationResult != NArchive::NExtract::NOperationResult::kOK) {
     reportError(operationResultToString(operationResult));
