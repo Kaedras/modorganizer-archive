@@ -575,7 +575,7 @@ bool ArchiveImpl::extract(std::filesystem::path const& outputDirectory,
   std::vector<UInt32> indices;
   UInt64 totalSize = 0;
   for (std::size_t i = 0; i < m_FileList.size(); ++i) {
-    FileDataImpl* fileData = static_cast<FileDataImpl*>(m_FileList[i]);
+    FileDataImpl* fileData = dynamic_cast<FileDataImpl*>(m_FileList[i]);
     if (!fileData->isEmpty()) {
       indices.push_back(static_cast<UInt32>(i));
       totalSize += fileData->getSize();
