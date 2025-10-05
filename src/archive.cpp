@@ -282,7 +282,7 @@ HRESULT ArchiveImpl::loadFormats()
 
 ArchiveImpl::ArchiveImpl()
     : m_Valid(false), m_LastError(Error::ERROR_NONE), m_Library(libraryPath),
-      m_PasswordCallback{}
+      m_ExtractCallback(nullptr), m_PasswordCallback{}
 {
   // Reset the log callback:
   setLogCallback({});
