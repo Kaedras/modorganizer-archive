@@ -365,7 +365,7 @@ bool ArchiveImpl::open(std::filesystem::path const& archiveName,
 
   {
     // Get the first iterator that is strictly > the signature we're looking for.
-    for (auto signatureInfo : m_SignatureMap) {
+    for (const auto& signatureInfo : m_SignatureMap) {
       // Read the signature of the file and look that up.
       std::vector<char> buff;
       buff.reserve(m_MaxSignatureLen);
