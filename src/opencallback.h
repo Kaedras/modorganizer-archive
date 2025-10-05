@@ -49,7 +49,7 @@ public:
                        Archive::LogCallback logCallback,
                        std::filesystem::path filepath);
 
-  ~CArchiveOpenCallback() {}
+  virtual ~CArchiveOpenCallback() {}
 
   const std::wstring& GetPassword() const { return m_Password; }
 
