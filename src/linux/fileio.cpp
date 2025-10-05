@@ -15,7 +15,7 @@ namespace IO
 
 bool FileInfo::isReadOnly() const
 {
-  struct stat info;
+  struct stat info;  // NOLINT(*-pro-type-member-init)
   stat(m_Path.c_str(), &info);
   mode_t perm = info.st_mode;
 
@@ -25,7 +25,7 @@ bool FileInfo::isReadOnly() const
 bool FileInfo::isSystem() const
 {
   // check owner
-  struct stat info;
+  struct stat info;  // NOLINT(*-pro-type-member-init)
   stat(m_Path.c_str(), &info);
   if (info.st_uid == 0 || info.st_gid == 0) {
     return true;
@@ -57,7 +57,7 @@ bool FileBase::GetPosition(UInt64& position) noexcept
 
 bool FileBase::GetLength(UInt64& length) const noexcept
 {
-  struct stat stats;
+  struct stat stats;  // NOLINT(*-pro-type-member-init)
   if (fstat(m_fd, &stats) == -1) {
     return false;
   }
@@ -110,7 +110,7 @@ bool FileBase::GetFileInformation(std::filesystem::path const& path,
   if (!file.Create(path, O_RDONLY))
     return false;
 
-  struct stat finfo;
+  struct stat finfo;  // NOLINT(*-pro-type-member-init)
   if (fstat(file.m_fd, &finfo) == -1) {
     return false;
   }
