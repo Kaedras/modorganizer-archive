@@ -33,6 +33,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <stddef.h>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #ifdef __unix__
@@ -48,8 +49,10 @@ class FileDataImpl : public FileData
   friend class Archive;
 
 public:
-  FileDataImpl(std::wstring const& fileName, UInt64 size, UInt64 crc, bool isDirectory)
-      : m_FileName(fileName), m_Size(size), m_CRC(crc), m_IsDirectory(isDirectory)
+  FileDataImpl(std::filesystem::path fileName, UInt64 size, UInt64 crc,
+               bool isDirectory)
+      : m_FileName(std::move(fileName)), m_Size(size), m_CRC(crc),
+        m_IsDirectory(isDirectory)
   {}
 
   virtual std::filesystem::path getArchiveFilePath() const override
@@ -74,7 +77,7 @@ public:
   virtual uint64_t getCRC() const override { return m_CRC; }
 
 private:
-  std::wstring m_FileName;
+  std::filesystem::path m_FileName;
   UInt64 m_Size;
   UInt64 m_CRC;
   std::vector<std::filesystem::path> m_OutputFilePaths;
