@@ -142,6 +142,7 @@ bool FileIn::Read(void* data, UInt32 size, UInt32& processedSize) noexcept
   } while (size > 0);
   return true;
 }
+
 bool FileIn::Read1(void* data, UInt32 size, UInt32& processedSize) noexcept
 {
   ssize_t result = read(m_fd, data, size);
@@ -151,6 +152,7 @@ bool FileIn::Read1(void* data, UInt32 size, UInt32& processedSize) noexcept
   processedSize = result;
   return true;
 }
+
 bool FileIn::ReadPart(void* data, UInt32 size, UInt32& processedSize) noexcept
 {
   if (size > kChunkSizeMax)
@@ -168,7 +170,6 @@ bool FileOut::Open(std::filesystem::path const& fileName) noexcept
 bool FileOut::SetTime(const timespec* cTime, const timespec* aTime,
                       const timespec* mTime) noexcept
 {
-
   struct stat info{};
   fstat(m_fd, &info);
 
@@ -179,6 +180,7 @@ bool FileOut::SetTime(const timespec* cTime, const timespec* aTime,
 
   return futimens(m_fd, times) == 0;
 }
+
 bool FileOut::SetMTime(const timespec* mTime) noexcept
 {
   return SetTime(nullptr, nullptr, mTime);
