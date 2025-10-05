@@ -29,6 +29,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "fileio.h"
@@ -37,15 +38,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 CArchiveOpenCallback::CArchiveOpenCallback(Archive::PasswordCallback passwordCallback,
                                            Archive::LogCallback logCallback,
-                                           std::filesystem::path const& filepath)
-    : m_PasswordCallback(passwordCallback), m_LogCallback(logCallback),
-      m_Path(filepath), m_SubArchiveMode(false)
+                                           std::filesystem::path filepath)
+    : m_PasswordCallback(std::move(passwordCallback)),
+      m_LogCallback(std::move(logCallback)), m_Path(std::move(filepath)),
+      m_SubArchiveMode(false)
 {
-  if (!exists(filepath)) {
+  if (!exists(m_Path)) {
     throw std::runtime_error("invalid archive path");
   }
 
-  if (!IO::FileBase::GetFileInformation(filepath, &m_FileInfo)) {
+  if (!IO::FileBase::GetFileInformation(m_Path, &m_FileInfo)) {
     throw std::runtime_error("failed to retrieve file information");
   }
 }

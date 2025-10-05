@@ -47,7 +47,7 @@ class CArchiveOpenCallback : public IArchiveOpenCallback,
 public:
   CArchiveOpenCallback(Archive::PasswordCallback passwordCallback,
                        Archive::LogCallback logCallback,
-                       std::filesystem::path const& filepath);
+                       std::filesystem::path filepath);
 
   ~CArchiveOpenCallback() {}
 

@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <format>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 #include "archive.h"
 #include "extractcallback.h"
@@ -80,10 +81,11 @@ CArchiveExtractCallback::CArchiveExtractCallback(
       m_Extracting(false), m_Canceled(false), m_Timers{}, m_ProcessedFileInfo{},
       m_OutputFileStream{}, m_OutFileStreamCom{}, m_FileData(fileData),
       m_NbFiles(nbFiles), m_TotalFileSize(totalFileSize), m_LastCallbackFileSize(0),
-      m_ExtractedFileSize(0), m_ProgressCallback(progressCallback),
-      m_FileChangeCallback(fileChangeCallback), m_ErrorCallback(errorCallback),
-      m_PasswordCallback(passwordCallback), m_LogCallback(logCallback),
-      m_Password(password)
+      m_ExtractedFileSize(0), m_ProgressCallback(std::move(progressCallback)),
+      m_FileChangeCallback(std::move(fileChangeCallback)),
+      m_ErrorCallback(std::move(errorCallback)),
+      m_PasswordCallback(std::move(passwordCallback)),
+      m_LogCallback(std::move(logCallback)), m_Password(password)
 {
   m_DirectoryPath = IO::make_path(directoryPath);
 }

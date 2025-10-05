@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <Common/MyUnknown.h>
 
 #include <fcntl.h>
+#include <utility>
 #ifdef __unix__
 #define FILE_CURRENT SEEK_CUR
 #else
@@ -43,7 +44,8 @@ static inline HRESULT ConvertBoolToHRESULT(bool result)
 //////////////////////////
 // MultiOutputStream
 
-MultiOutputStream::MultiOutputStream(WriteCallback callback) : m_WriteCallback(callback)
+MultiOutputStream::MultiOutputStream(WriteCallback callback)
+    : m_WriteCallback(std::move(callback))
 {}
 
 MultiOutputStream::~MultiOutputStream() {}
