@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #define ARCHIVE_LIBRARY_H
 
 #ifdef __unix__
-#define ERROR_SUCCESS EXIT_SUCCESS
+#define ERROR_SUCCESS 0
 #include <dlfcn.h>
 inline void* LoadLibraryA(const char* path)
 {
