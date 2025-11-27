@@ -28,9 +28,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "propertyvariant.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <map>
 #include <sstream>
-#include <stddef.h>
 #include <string>
 #include <unordered_map>
 #include <utility>
