@@ -549,9 +549,8 @@ void ArchiveImpl::close()
 
 void ArchiveImpl::clearFileList()
 {
-  for (std::vector<FileData*>::iterator iter = m_FileList.begin();
-       iter != m_FileList.end(); ++iter) {
-    delete *iter;
+  for (auto& iter : m_FileList) {
+    delete iter;
   }
   m_FileList.clear();
 }
