@@ -94,11 +94,11 @@ class ArchiveImpl : public Archive
 
 public:
   ArchiveImpl();
-  virtual ~ArchiveImpl();
+  ~ArchiveImpl() override;
 
-  virtual bool isValid() const { return m_Valid; }
+  bool isValid() const override { return m_Valid; }
 
-  virtual Error getLastError() const { return m_LastError; }
+  Error getLastError() const override { return m_LastError; }
   virtual void setLogCallback(LogCallback logCallback) override
   {
     // Wrap the callback so that we do not have to check if it is set everywhere:
