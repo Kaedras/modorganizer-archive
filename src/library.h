@@ -27,26 +27,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 using HMODULE = void*;
 
-#include <array>
 #include <dlfcn.h>
-#include <filesystem>
-#include <unistd.h>
+#include <format>
 
 inline void* LoadLibraryA(const char* path)
 {
-  if (path[0] == '/') {
-    return dlopen(path, RTLD_NOW);
+  if (getenv("APPIMAGE") != nullptr && getenv("APPDIR") != nullptr) {
+    std::string realPath = std::format("{}/{}", getenv("APPDIR"), path);
+    return dlopen(realPath.c_str(), RTLD_NOW);
   }
 
-  // construct path relative to executable, this is required for AppImages
-  std::array<char, 255> buf = {};
-  ssize_t readBytes         = readlink("/proc/self/exe", buf.data(), 255);
-  if (readBytes < 0) {
-    return nullptr;
-  }
-  std::filesystem::path executablePath({buf.data(), static_cast<size_t>(readBytes)});
-  std::string realPath = executablePath.parent_path() / path;
-  return dlopen(realPath.c_str(), RTLD_NOW);
+  return dlopen(path, RTLD_NOW);
 }
 
 inline void FreeLibrary(void* handle)
