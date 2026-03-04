@@ -33,7 +33,7 @@ using HMODULE = void*;
 inline void* LoadLibraryA(const char* path)
 {
   if (getenv("APPIMAGE") != nullptr && getenv("APPDIR") != nullptr) {
-    std::string realPath = std::format("{}/{}", getenv("APPDIR"), path);
+    std::string realPath = std::format("{}/usr/{}", getenv("APPDIR"), path);
     return dlopen(realPath.c_str(), RTLD_NOW);
   }
 
