@@ -77,8 +77,37 @@ endif()
 add_library(mo2::archive ALIAS archive)
 
 install(TARGETS archive EXPORT archiveTargets FILE_SET HEADERS)
-if (WIN32 AND NOT BUILD_STATIC)
-	install(FILES $<TARGET_PDB_FILE:archive> DESTINATION pdb OPTIONAL)
+if (NOT BUILD_STATIC)
+	if (WIN32)
+		install(FILES $<TARGET_PDB_FILE:archive> DESTINATION pdb OPTIONAL)
+	else()
+		# from https://stackoverflow.com/a/78987613
+		# NOTE: The dbg extension is used solely because it is used as a standard
+		# NOTE: In Linux documentation etc.
+		# NOTE: Obtained from https://www.man7.org/linux/man-pages/man1/objcopy.1.html
+		add_custom_command(
+				TARGET archive
+				# Separate the Debug Information from the Target file
+				COMMAND ${CMAKE_OBJCOPY} ARGS --only-keep-debug $<TARGET_FILE:archive> $<TARGET_FILE:archive>.dbg
+				# As we have previously separated the debug information from the
+				# previous output, remove all debug information from the same
+				COMMAND ${CMAKE_OBJCOPY} ARGS --strip-debug $<TARGET_FILE:archive>
+				# Link the Separate Debug Information with the Final Release
+				COMMAND ${CMAKE_OBJCOPY} ARGS --add-gnu-debuglink=$<TARGET_FILE:archive>.dbg $<TARGET_FILE:archive>
+				POST_BUILD
+		)
+		# NOTE: Add this to the clean target
+		# NOTE: This is needed because otherwise old debug information
+		# NOTE:  Will not be cleared upon clean
+		set_property(
+				TARGET archive
+				APPEND
+				PROPERTY
+				ADDITIONAL_CLEAN_FILES
+				$<TARGET_FILE:archive>.dbg
+		)
+		install(FILES $<TARGET_FILE:archive>.dbg DESTINATION debug)
+	endif()
 endif()
 install(EXPORT archiveTargets
 	FILE mo2-archive-targets.cmake
