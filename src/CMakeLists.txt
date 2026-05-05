@@ -85,5 +85,5 @@ endif()
 install(EXPORT archiveTargets
 	FILE mo2-archive-targets.cmake
 	NAMESPACE mo2::
-	DESTINATION lib/cmake/mo2-archive
+	DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/mo2-archive
 )

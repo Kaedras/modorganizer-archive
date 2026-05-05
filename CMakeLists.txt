@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
 
-include(CMakePackageConfigHelpers)
+project(archive LANGUAGES CXX)
 
-project(archive)
+include(CMakePackageConfigHelpers)
+include(GNUInstallDirs)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
@@ -11,7 +12,7 @@ add_subdirectory(src)
 
 configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.cmake.in
   "${CMAKE_CURRENT_BINARY_DIR}/mo2-archive-config.cmake"
-  INSTALL_DESTINATION "lib/cmake/mo2-archive"
+  INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/mo2-archive"
   NO_SET_AND_CHECK_MACRO
   NO_CHECK_REQUIRED_COMPONENTS_MACRO
 )
@@ -33,5 +34,5 @@ write_basic_package_version_file(
 install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/mo2-archive-config.cmake
   ${CMAKE_CURRENT_BINARY_DIR}/mo2-archive-config-version.cmake
-  DESTINATION lib/cmake/mo2-archive
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/mo2-archive
 )
