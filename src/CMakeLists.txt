@@ -61,6 +61,8 @@ else ()
 		PRIVATE
 		"-Wall"
 		"-Wextra"
+		"-Wpedantic"
+		"-fvisibility-ms-compat"
 	)
 	target_link_options(archive
 		PRIVATE
