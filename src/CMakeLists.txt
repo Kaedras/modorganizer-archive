@@ -37,10 +37,10 @@ target_sources(mo2-archive
 	PUBLIC
 		FILE_SET HEADERS
 		BASE_DIRS ${CMAKE_CURRENT_LIST_DIR}/../include
-		FILES ${CMAKE_CURRENT_LIST_DIR}/../include/mo2-archive/archive.h
+		FILES ${CMAKE_CURRENT_LIST_DIR}/../include/archive/archive.h
 )
 
-target_include_directories(mo2-archive PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../include/mo2-archive)
+target_include_directories(mo2-archive PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../include/archive)
 
 if (MSVC)
 	target_compile_options(mo2-archive
