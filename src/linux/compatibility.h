@@ -1,10 +1,10 @@
 #pragma once
 
-#define ERROR_SUCCESS 0
+#include <dlfcn.h>
 
 using HMODULE = void*;
 
-#include <dlfcn.h>
+static inline constexpr DWORD ERROR_SUCCESS = 0;
 
 inline void* LoadLibraryA(const char* path)
 {
