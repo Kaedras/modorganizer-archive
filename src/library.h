@@ -28,15 +28,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 using HMODULE = void*;
 
 #include <dlfcn.h>
-#include <format>
 
 inline void* LoadLibraryA(const char* path)
 {
-  if (getenv("APPIMAGE") != nullptr && getenv("APPDIR") != nullptr) {
-    std::string realPath = std::format("{}/usr/{}", getenv("APPDIR"), path);
-    return dlopen(realPath.c_str(), RTLD_NOW);
-  }
-
   return dlopen(path, RTLD_NOW);
 }
 
@@ -60,9 +54,9 @@ inline void* GetProcAddress(void* handle, const char* procName)
 class ALibrary
 {
 public:
-  ALibrary(const char* path) : m_Module{nullptr}, m_LastError{ERROR_SUCCESS}
+  ALibrary(const std::string& path) : m_Module{nullptr}, m_LastError{ERROR_SUCCESS}
   {
-    m_Module = LoadLibraryA(path);
+    m_Module = LoadLibraryA(path.c_str());
     if (m_Module == nullptr) {
       updateLastError();
     }

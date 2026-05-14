@@ -36,11 +36,44 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <utility>
 #include <vector>
 
+namespace
+{
+
+std::string getLibraryPath()
+{
 #ifdef __unix__
-static constexpr const char* libraryPath = "lib/lib7zip.so";
+  using namespace std;
+  namespace fs = std::filesystem;
+
+  vector<fs::path> paths;
+
+  if (getenv("APPIMAGE") != nullptr && getenv("APPDIR") != nullptr) {
+    const fs::path appDir = getenv("APPDIR");
+    paths                 = {appDir / "lib/lib7zip.so", appDir / "lib/7z.so"};
+  }
+
+  else {
+    paths = {
+        "lib/lib7zip.so",
+        "/usr/lib/7zip/7z.so",
+        "/usr/lib64/7zip/7z.so",
+    };
+  }
+
+  for (const auto& path : paths) {
+    if (filesystem::exists(path)) {
+      return path;
+    }
+  }
+
+  return "lib/lib7zip.so";
+
 #else
-static constexpr const char* libraryPath = "dlls/7zip.dll";
+  return "dlls/7zip.dll";
 #endif
+}
+
+}  // namespace
 
 namespace PropID = NArchive::NHandlerPropID;
 
@@ -281,7 +314,7 @@ HRESULT ArchiveImpl::loadFormats()
 }
 
 ArchiveImpl::ArchiveImpl()
-    : m_Valid(false), m_LastError(Error::ERROR_NONE), m_Library(libraryPath),
+    : m_Valid(false), m_LastError(Error::ERROR_NONE), m_Library(getLibraryPath()),
       m_ExtractCallback(nullptr), m_PasswordCallback{}
 {
   // Reset the log callback:
