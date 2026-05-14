@@ -6,6 +6,7 @@ add_library(mo2-archive)
 
 if (UNIX)
 	set(os_name "linux")
+	set_target_properties(mo2-archive PROPERTIES INSTALL_RPATH "$ORIGIN;$ORIGIN/lib")
 else ()
 	set(os_name "win32")
 endif ()
