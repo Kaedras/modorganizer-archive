@@ -22,28 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #define ARCHIVE_LIBRARY_H
 
 #ifdef __unix__
-
-#define ERROR_SUCCESS 0
-
-using HMODULE = void*;
-
-#include <dlfcn.h>
-
-inline void* LoadLibraryA(const char* path)
-{
-  return dlopen(path, RTLD_NOW);
-}
-
-inline void FreeLibrary(void* handle)
-{
-  dlclose(handle);
-}
-
-inline void* GetProcAddress(void* handle, const char* procName)
-{
-  return dlsym(handle, procName);
-}
-
+#include "linux/compatibility.h"
 #endif
 
 #include <Common/MyWindows.h>
