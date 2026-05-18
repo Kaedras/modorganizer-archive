@@ -7,8 +7,13 @@ include(GNUInstallDirs)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
+option(BUILD_TESTING "Build unit tests" ON)
 
 add_subdirectory(src)
+if(BUILD_TESTING)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
 
 configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.cmake.in
   "${CMAKE_CURRENT_BINARY_DIR}/mo2-archive-config.cmake"
