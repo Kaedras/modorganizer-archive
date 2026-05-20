@@ -83,7 +83,7 @@ TEST(ArchiveTest, FileChangeCallback)
 
   Archive::FileChangeCallback fileChangeCallback =
       [&](Archive::FileChangeType, std::filesystem::path const& path) {
-        callbackFiles += path.string() + ";";
+        callbackFiles += path.generic_string() + ";";
       };
 
   ASSERT_TRUE(a->extract(tmpDir.path().toStdString(), nullptr, fileChangeCallback,
