@@ -4,6 +4,7 @@ find_package(GTest REQUIRED)
 find_package(Qt6 REQUIRED COMPONENTS Core)
 
 add_executable(archive-test test.cpp)
+set_target_properties(archive-test PROPERTIES CXX_STANDARD 20)
 target_link_libraries(archive-test PRIVATE mo2::archive GTest::gtest GTest::gtest_main Qt::Core)
 
 # copy test files
