@@ -285,7 +285,7 @@ bool ArchiveImpl::extract(std::filesystem::path const& outputDirectory,
     for (size_t i = 0; i < m_FileList.size(); ++i) {
       auto* fileData = dynamic_cast<FileDataImpl*>(m_FileList[i]);
       if (!fileData->isEmpty()) {
-        indices.push_back(i);
+        indices.push_back(static_cast<uint32_t>(i));
         const auto& outputs = fileData->getOutputFilePaths();
         if (outputs.size() != 1 || outputs[0] != fileData->getArchiveFilePath()) {
           allSimple = false;
