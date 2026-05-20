@@ -320,6 +320,8 @@ bool ArchiveImpl::extract(std::filesystem::path const& outputDirectory,
         if (outputs.size() != 1 || outputs[0] != fileData->getArchiveFilePath()) {
           allSimple = false;
         }
+      } else {
+        allSimple = false;
       }
     }
 
