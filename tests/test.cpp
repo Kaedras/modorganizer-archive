@@ -32,17 +32,11 @@ void errorCallback(const QString& log)
       << a->errorString().toStdString()
 
 class ArchiveTest : public testing::TestWithParam<string>
-{
-  // You can implement all the usual fixture class members here.
-  // To access the test parameter, call GetParam() from class
-  // TestWithParam<T>.
-};
+{};
 
 TEST_P(ArchiveTest, Archive)
 {
-  const string& archive = GetParam();
-
-  INIT(archive);
+  INIT(GetParam());
 
   for (FileData* file : a->getFileList()) {
     file->addOutputFilePath(file->getArchiveFilePath());
@@ -50,13 +44,16 @@ TEST_P(ArchiveTest, Archive)
 
   EXPECT_TRUE(a->extract(tmpDir.path().toStdString(), nullptr, nullptr, errorCallback))
       << a->errorString().toStdString();
-  // system("tree /tmp/archive-test");
 }
 
 INSTANTIATE_TEST_SUITE_P(Extract, ArchiveTest,
                          testing::Values("test.7z", "test_encrypted.7z",
                                          "test_encrypted_headers.7z", "test.zip",
                                          "test_encrypted.zip"));
+
+// INSTANTIATE_TEST_SUITE_P(ExtractNested, ArchiveTest,
+//                          testing::Values("test.tar.bz2",
+//                                          "test.tar.zst"));
 
 TEST(ArchiveTest, NoOutputPaths)
 {
@@ -65,8 +62,8 @@ TEST(ArchiveTest, NoOutputPaths)
   ASSERT_TRUE(a->extract(tmpDir.path().toStdString(), nullptr, nullptr, errorCallback))
       << a->errorString().toStdString();
 
-  QDir dir(tmpDir.path());
-
+  // check if output directory is empty
+  const QDir dir(tmpDir.path());
   auto entryList = dir.entryList(QDir::AllEntries | QDir::NoDotAndDotDot);
   ASSERT_TRUE(entryList.isEmpty())
       << "Directory contains " << entryList.join(';').toStdString();
@@ -93,6 +90,7 @@ TEST(ArchiveTest, FileChangeCallback)
                          errorCallback))
       << a->errorString().toStdString();
 
+  // remove trailing ';'
   if (!callbackFiles.empty()) {
     callbackFiles.pop_back();
   }
@@ -102,11 +100,7 @@ TEST(ArchiveTest, FileChangeCallback)
   EXPECT_EQ(callbackFiles, expectedResult);
 
   const QDir dir(tmpDir.path());
-  auto entryList = dir.entryList(QDir::AllEntries | QDir::NoDotAndDotDot);
+  const auto entryList = dir.entryList(QDir::AllEntries | QDir::NoDotAndDotDot);
   ASSERT_EQ(entryList.size(), 1)
       << "Directory contains " << entryList.join(';').toStdString();
 }
-
-// INSTANTIATE_TEST_SUITE_P(ExtractNested, ArchiveTest,
-//                          testing::Values("test.tar.bz2",
-//                                          "test.tar.zst"));
