@@ -16,9 +16,11 @@ if(WIN32)
             COMMAND_EXPAND_LISTS
             COMMENT "Copy runtime DLLs for archive-test"
     )
+
+    find_package(7zip CONFIG REQUIRED)
     add_custom_command(TARGET archive-test POST_BUILD
             COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-            $<TARGET_FILE_DIR:archive-test>/7zip.dll
+            $<TARGET_FILE:7zip::7zip>
             $<TARGET_FILE_DIR:archive-test>/dlls/7zip.dll
             COMMENT "Copy 7z.dll"
     )
