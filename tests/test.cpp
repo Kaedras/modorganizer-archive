@@ -72,6 +72,41 @@ TEST(ArchiveTest, NoOutputPaths)
       << "Directory contains " << entryList.join(';').toStdString();
 }
 
+TEST(ArchiveTest, FileChangeCallback)
+{
+  INIT("test.7z");
+
+  for (FileData* file : a->getFileList()) {
+    if (file->getArchiveFilePath().string().starts_with("test")) {
+      file->addOutputFilePath(file->getArchiveFilePath());
+    }
+  }
+
+  string callbackFiles;
+
+  Archive::FileChangeCallback fileChangeCallback =
+      [&](Archive::FileChangeType, std::filesystem::path const& path) {
+        callbackFiles += path.string() + ";";
+      };
+
+  ASSERT_TRUE(a->extract(tmpDir.path().toStdString(), nullptr, fileChangeCallback,
+                         errorCallback))
+      << a->errorString().toStdString();
+
+  if (!callbackFiles.empty()) {
+    callbackFiles.pop_back();
+  }
+
+  const string expectedResult = "test/b.txt";
+
+  EXPECT_EQ(callbackFiles, expectedResult);
+
+  const QDir dir(tmpDir.path());
+  auto entryList = dir.entryList(QDir::AllEntries | QDir::NoDotAndDotDot);
+  ASSERT_EQ(entryList.size(), 1)
+      << "Directory contains " << entryList.join(';').toStdString();
+}
+
 // INSTANTIATE_TEST_SUITE_P(ExtractNested, ArchiveTest,
 //                          testing::Values("test.tar.bz2",
 //                                          "test.tar.zst"));
