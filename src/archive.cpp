@@ -196,13 +196,14 @@ bool ArchiveImpl::open(std::filesystem::path const& archiveName,
   }
 
   try {
-    if (BitArchiveReader::isHeaderEncrypted(*m_Library, archiveName.native(),
-                                            BitFormat::Auto)) {
+    if (BitArchiveReader::isHeaderEncrypted(
+            *m_Library, to_tstring(archiveName.native()), BitFormat::Auto)) {
       m_Password = passwordCallback();
     }
 
-    m_ArchivePtr = make_unique<BitArchiveReader>(*m_Library, archiveName.native(),
-                                                 BitFormat::Auto, toNative(m_Password));
+    m_ArchivePtr =
+        make_unique<BitArchiveReader>(*m_Library, to_tstring(archiveName.native()),
+                                      BitFormat::Auto, toNative(m_Password));
     m_PasswordCallback = passwordCallback;
     m_ArchivePtr->setPasswordCallback([this] {
       return passwordCallbackWrapper();
