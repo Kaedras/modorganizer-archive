@@ -39,7 +39,7 @@ tstring getLibraryPath()
   }
   return "7z.so";
 #else
-  return to_tstring(L"dlls/7z.dll");
+  return to_tstring(L"dlls/7zip.dll");
 #endif
 }
 }  // namespace
