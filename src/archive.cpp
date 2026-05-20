@@ -436,7 +436,7 @@ tstring ArchiveImpl::passwordCallbackWrapper()
 bool ArchiveImpl::progressCallbackWrapper(uint64_t current) const
 {
   m_ProgressCallback(m_ProgressType, current, m_Total);
-  return !m_shouldCancel;
+  return !m_shouldCancel.load();
 }
 
 void ArchiveImpl::fileChangeCallbackWrapper(const std::filesystem::path& path) const
