@@ -99,6 +99,7 @@ public:
   bool isValid() const override { return m_Valid; }
 
   Error getLastError() const override { return m_LastError; }
+  QString errorString() const override;
   virtual void setLogCallback(LogCallback logCallback) override
   {
     // Wrap the callback so that we do not have to check if it is set everywhere:
@@ -173,6 +174,34 @@ ArchiveImpl::ArchiveImpl()
 ArchiveImpl::~ArchiveImpl()
 {
   close();
+}
+
+QString ArchiveImpl::errorString() const
+{
+  switch (m_LastError) {
+  case Error::ERROR_NONE:
+    return QStringLiteral("No error");
+  case Error::ERROR_EXTRACT_CANCELLED:
+    return QStringLiteral("Extract cancelled");
+  case Error::ERROR_LIBRARY_NOT_FOUND:
+    return QStringLiteral("Library not found");
+  case Error::ERROR_LIBRARY_INVALID:
+    return QStringLiteral("Library invalid");
+  case Error::ERROR_ARCHIVE_NOT_FOUND:
+    return QStringLiteral("Archive not found");
+  case Error::ERROR_FAILED_TO_OPEN_ARCHIVE:
+    return QStringLiteral("Failed to open archive");
+  case Error::ERROR_INVALID_ARCHIVE_FORMAT:
+    return QStringLiteral("Invalid archive format");
+  case Error::ERROR_LIBRARY_ERROR:
+    return QStringLiteral("Library error");
+  case Error::ERROR_ARCHIVE_INVALID:
+    return QStringLiteral("Archive invalid");
+  case Error::ERROR_OUT_OF_MEMORY:
+    return QStringLiteral("Out of memory");
+  default:
+    return QStringLiteral("Invalid error code");
+  }
 }
 
 bool ArchiveImpl::open(std::filesystem::path const& archiveName,

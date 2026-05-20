@@ -177,6 +177,11 @@ public:
   virtual Error getLastError() const = 0;
 
   /**
+   * @return retrieve a string describing the last error that occurred.
+   */
+  virtual QString errorString() const = 0;
+
+  /**
    * @brief Set the callback used to log messages.
    *
    * To remove the callback, you can pass a default-constructed LogCallback object.
