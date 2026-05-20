@@ -1,40 +1,17 @@
 cmake_minimum_required(VERSION 3.16)
 
-find_package(7zip CONFIG REQUIRED)
+find_package(unofficial-bit7z CONFIG REQUIRED)
+find_package(Qt6 CONFIG REQUIRED COMPONENTS Core)
 
 add_library(mo2-archive)
 
-if (UNIX)
-	set(os_name "linux")
-	set_target_properties(mo2-archive PROPERTIES INSTALL_RPATH "$ORIGIN;$ORIGIN/lib")
-else ()
-	set(os_name "win32")
-endif ()
-
 set_target_properties(mo2-archive PROPERTIES CXX_STANDARD 20)
-target_link_libraries(mo2-archive PRIVATE 7zip::7zip)
+target_link_libraries(mo2-archive PRIVATE unofficial::bit7z::bit7z64 PUBLIC Qt::Core)
 
 target_sources(mo2-archive
 	PRIVATE
 		archive.cpp
-		extractcallback.cpp
-		extractcallback.h
-		${os_name}/fileio.cpp
-		${os_name}/fileio.h
-		formatter.h
-		inputstream.cpp
-		inputstream.h
-		instrument.h
-		interfaceguids.cpp
-		library.h
-		multioutputstream.cpp
-		multioutputstream.h
-		opencallback.cpp
-		opencallback.h
-		propertyvariant.cpp
-		propertyvariant.h
-		unknown_impl.h
-		version.rc
+		$<$<PLATFORM_ID:Windows>:version.rc>
 	PUBLIC
 		FILE_SET HEADERS
 		BASE_DIRS ${CMAKE_CURRENT_LIST_DIR}/../include

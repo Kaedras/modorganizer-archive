@@ -21,26 +21,19 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #ifndef ARCHIVE_H
 #define ARCHIVE_H
 
+#include <QString>
+#include <QtCompilerDetection>
 #include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <memory>
-#include <string>
 
 #if defined(MO2_ARCHIVE_BUILD_STATIC)
 #define DLLEXPORT
 #elif defined(MO2_ARCHIVE_BUILD_EXPORT)
-#ifdef __unix__
-#define DLLEXPORT __attribute__((visibility("default")))
+#define DLLEXPORT Q_DECL_EXPORT
 #else
-#define DLLEXPORT _declspec(dllexport)
-#endif
-#else
-#ifdef __unix__
-#define DLLEXPORT
-#else
-#define DLLEXPORT _declspec(dllimport)
-#endif
+#define DLLEXPORT Q_DECL_IMPORT
 #endif
 
 class FileData
@@ -138,12 +131,12 @@ public:  // Declarations
   /**
    * List of callbacks:
    */
-  using LogCallback      = std::function<void(LogLevel, std::wstring const& log)>;
+  using LogCallback      = std::function<void(LogLevel, QString const& log)>;
   using ProgressCallback = std::function<void(ProgressType, uint64_t, uint64_t)>;
-  using PasswordCallback = std::function<std::wstring()>;
+  using PasswordCallback = std::function<QString()>;
   using FileChangeCallback =
       std::function<void(FileChangeType, std::filesystem::path const&)>;
-  using ErrorCallback = std::function<void(std::wstring const&)>;
+  using ErrorCallback = std::function<void(QString const&)>;
 
   /**
    *

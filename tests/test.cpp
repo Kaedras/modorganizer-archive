@@ -1,23 +1,24 @@
 #include "archive/archive.h"
 
+#include <QTemporaryDir>
 #include <gtest/gtest.h>
 
 using namespace std;
 namespace fs = std::filesystem;
 
-std::wstring passwordCallback()
+QString passwordCallback()
 {
-  return L"password";
+  return QStringLiteral("password");
 }
 
-void logCallback(Archive::LogLevel, std::wstring const& log)
+void logCallback(Archive::LogLevel, const QString& log)
 {
-  std::wcout << log << '\n';
+  std::cout << log.toStdString() << '\n';
 }
 
-void errorCallback(std::wstring const& log)
+void errorCallback(const QString& log)
 {
-  std::wcerr << log << '\n';
+  std::cerr << log.toStdString() << '\n';
 }
 
 class ArchiveTest : public testing::TestWithParam<string>
@@ -29,9 +30,10 @@ class ArchiveTest : public testing::TestWithParam<string>
 
 TEST_P(ArchiveTest, Archive)
 {
-  const auto tmpDir = fs::temp_directory_path() / "archive-test";
-
   const string& archive = GetParam();
+
+  QTemporaryDir tmpDir;
+  ASSERT_TRUE(tmpDir.isValid()) << tmpDir.errorString().toStdString();
 
   auto a = CreateArchive();
   ASSERT_TRUE(a->isValid()) << "error " << static_cast<int>(a->getLastError());
@@ -45,9 +47,8 @@ TEST_P(ArchiveTest, Archive)
     file->addOutputFilePath(file->getArchiveFilePath());
   }
 
-  EXPECT_TRUE(a->extract(tmpDir, nullptr, nullptr, errorCallback));
+  EXPECT_TRUE(a->extract(tmpDir.path().toStdString(), nullptr, nullptr, errorCallback));
   // system("tree /tmp/archive-test");
-  std::filesystem::remove_all(tmpDir);
 }
 
 INSTANTIATE_TEST_SUITE_P(Extract, ArchiveTest,

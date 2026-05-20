@@ -1,88 +1,55 @@
-/*
-Mod Organizer archive handling
-
-Copyright (C) 2012 Sebastian Herbord, 2020 MO2 Team. All rights reserved.
-
-This library is free software; you can redistribute it and/or
-modify it under the terms of the GNU Lesser General Public
-License as published by the Free Software Foundation; either
-version 3 of the License, or (at your option) any later version.
-
-This library is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-Lesser General Public License for more details.
-
-You should have received a copy of the GNU Lesser General Public
-License along with this library; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-*/
-
 #include "archive.h"
-#include <Common/MyCom.h>
 
-#include "extractcallback.h"
-#include "inputstream.h"
-#include "library.h"
-#include "opencallback.h"
-#include "propertyvariant.h"
+#include <bit7z/bitabstractarchivehandler.hpp>
+#include <bit7z/bitarchivereader.hpp>
+#include <bit7z/bitformat.hpp>
 
-#include <algorithm>
-#include <cstddef>
-#include <map>
-#include <sstream>
-#include <string>
-#include <unordered_map>
+#include <QTemporaryDir>
+#include <atomic>
+#include <filesystem>
+#include <fstream>
 #include <utility>
 #include <vector>
 
+using namespace bit7z;
+using namespace std;
+using namespace Qt::StringLiterals;
+
 namespace
 {
-
-std::string getLibraryPath()
+tstring toNative(const QString& s)
 {
 #ifdef __unix__
-  using namespace std;
-  namespace fs = std::filesystem;
-
-  vector<fs::path> paths;
-
-  if (getenv("APPIMAGE") != nullptr && getenv("APPDIR") != nullptr) {
-    const fs::path appDir = getenv("APPDIR");
-    paths                 = {appDir / "lib/lib7zip.so", appDir / "lib/7z.so"};
-  }
-
-  else {
-    paths = {
-        "lib/lib7zip.so",
-        "/usr/lib/7zip/7z.so",
-        "/usr/lib64/7zip/7z.so",
-    };
-  }
-
-  for (const auto& path : paths) {
-    if (filesystem::exists(path)) {
-      return path;
-    }
-  }
-
-  return "lib/lib7zip.so";
-
+  return s.toStdString();
 #else
-  return "dlls/7zip.dll";
+  return to_tstring(s.toStdWString());
 #endif
 }
 
+tstring getLibraryPath()
+{
+#ifdef __unix__
+  // list of 7z library paths including fallback locations
+  static constexpr std::array libraryPaths{"lib/lib7zip.so", "/usr/lib/7zip/7z.so",
+                                           "/usr/lib64/7zip/7z.so"};
+  for (const auto& libraryPath : libraryPaths) {
+    if (std::filesystem::exists(libraryPath)) {
+      return libraryPath;
+    }
+  }
+  return "7z.so";
+#else
+  return L"dlls/7z.dll";
+#endif
+}
 }  // namespace
-
-namespace PropID = NArchive::NHandlerPropID;
 
 class FileDataImpl : public FileData
 {
   friend class Archive;
 
 public:
-  FileDataImpl(std::filesystem::path fileName, UInt64 size, UInt64 crc,
+  FileDataImpl(std::filesystem::path fileName, uint64_t size, uint64_t crc,
                bool isDirectory)
       : m_FileName(std::move(fileName)), m_Size(size), m_CRC(crc),
         m_IsDirectory(isDirectory)
@@ -111,8 +78,8 @@ public:
 
 private:
   std::filesystem::path m_FileName;
-  UInt64 m_Size;
-  UInt64 m_CRC;
+  uint64_t m_Size;
+  uint64_t m_CRC;
   std::vector<std::filesystem::path> m_OutputFilePaths;
   bool m_IsDirectory;
 };
@@ -152,202 +119,54 @@ public:
 private:
   void clearFileList();
   void resetFileList();
+  void reportError(const QString& message) const;
 
-  HRESULT loadFormats();
-
-private:
-  typedef UINT32(WINAPI* CreateObjectFunc)(const GUID* clsID, const GUID* interfaceID,
-                                           void** outObject);
-  CreateObjectFunc m_CreateObjectFunc;
-
-  // A note: In 7zip source code this not is what this typedef is called, the old
-  // GetHandlerPropertyFunc appears to be deprecated.
-  typedef UInt32(WINAPI* GetPropertyFunc)(UInt32 index, PROPID propID,
-                                          PROPVARIANT* value);
-  GetPropertyFunc m_GetHandlerPropertyFunc;
-
-  template <typename T>
-  T readHandlerProperty(UInt32 index, PROPID propID) const;
-
-  template <typename T>
-  T readProperty(UInt32 index, PROPID propID) const;
+  // callback wrapper functions
+  /** @returns true if we should continue extracting, false otherwise */
+  [[nodiscard]] bool progressCallbackWrapper(uint64_t current) const;
+  void fileChangeCallbackWrapper(const std::filesystem::path& path) const;
+  tstring passwordCallbackWrapper();
 
   bool m_Valid;
   Error m_LastError;
+  std::atomic<bool> m_shouldCancel = false;
 
-  ALibrary m_Library;
-  std::filesystem::path m_ArchiveName;  // TBH I don't think this is required
-  CMyComPtr<IInArchive> m_ArchivePtr;
-  CArchiveExtractCallback* m_ExtractCallback;
+  unique_ptr<Bit7zLibrary> m_Library;
+  unique_ptr<BitArchiveReader> m_ArchivePtr;
 
+  ProgressType m_ProgressType;
+  uint64_t m_Total;
+  FileChangeType m_FileChangeType;
+
+  ProgressCallback m_ProgressCallback;
+  FileChangeCallback m_FileChangeCallback;
   LogCallback m_LogCallback;
+  ErrorCallback m_ErrorCallback;
   PasswordCallback m_PasswordCallback;
 
   std::vector<FileData*> m_FileList;
 
-  std::wstring m_Password;
-
-  struct ArchiveFormatInfo
-  {
-    CLSID m_ClassID;
-    std::wstring m_Name;
-    std::vector<std::string> m_Signatures;
-    std::wstring m_Extensions;
-    std::wstring m_AdditionalExtensions;
-    UInt32 m_SignatureOffset;
-  };
-
-  typedef std::vector<ArchiveFormatInfo> Formats;
-  Formats m_Formats;
-
-  typedef std::unordered_map<std::wstring, Formats> FormatMap;
-  FormatMap m_FormatMap;
-
-  // I don't think one signature could possibly describe two formats.
-  typedef std::map<std::string, ArchiveFormatInfo> SignatureMap;
-  SignatureMap m_SignatureMap;
-
-  std::size_t m_MaxSignatureLen = 0;
+  QString m_Password;
 };
 
-Archive::LogCallback ArchiveImpl::DefaultLogCallback([](LogLevel, std::wstring const&) {
-});
-
-template <typename T>
-T ArchiveImpl::readHandlerProperty(UInt32 index, PROPID propID) const
-{
-  PropertyVariant prop;
-  if (m_GetHandlerPropertyFunc(index, propID, &prop) != S_OK) {
-    throw std::runtime_error("Failed to read property");
-  }
-  return static_cast<T>(prop);
-}
-
-template <typename T>
-T ArchiveImpl::readProperty(UInt32 index, PROPID propID) const
-{
-  PropertyVariant prop;
-  if (m_ArchivePtr->GetProperty(index, propID, &prop) != S_OK) {
-    throw std::runtime_error("Failed to read property");
-  }
-  return static_cast<T>(prop);
-}
-
-// Seriously, there is one format returned in the list that has no registered
-// extension and no signature. WTF?
-HRESULT ArchiveImpl::loadFormats()
-{
-  typedef UInt32(WINAPI * GetNumberOfFormatsFunc)(UInt32 * numFormats);
-  GetNumberOfFormatsFunc getNumberOfFormats =
-      m_Library.resolve<GetNumberOfFormatsFunc>("GetNumberOfFormats");
-  if (getNumberOfFormats == nullptr) {
-    return E_FAIL;
-  }
-
-  UInt32 numFormats;
-  RINOK(getNumberOfFormats(&numFormats));
-
-  for (UInt32 i = 0; i < numFormats; ++i) {
-    ArchiveFormatInfo item;
-
-    item.m_Name = readHandlerProperty<std::wstring>(i, PropID::kName);
-
-    item.m_ClassID = readHandlerProperty<GUID>(i, PropID::kClassID);
-
-    // Should split up the extensions and map extension to type, and see what we get
-    // from that for preference then try all extensions anyway...
-    item.m_Extensions = readHandlerProperty<std::wstring>(i, PropID::kExtension);
-
-    // This is unnecessary currently for our purposes. Basically, for each
-    // extension, there's an 'addext' which, if set (to other than *) means that
-    // theres a double encoding going on. For instance, the bzip format is like this
-    // addext = "* * .tar .tar"
-    // ext    = "bz2 bzip2 tbz2 tbz"
-    // which means that tbz2 and tbz should uncompress to a tar file which can be
-    // further processed as if it were a tar file. Having said which, we don't
-    // need to support this at all, so I'm storing it but ignoring it.
-    item.m_AdditionalExtensions =
-        readHandlerProperty<std::wstring>(i, PropID::kAddExtension);
-
-    std::string signature = readHandlerProperty<std::string>(i, PropID::kSignature);
-    if (!signature.empty()) {
-      item.m_Signatures.push_back(signature);
-      if (m_MaxSignatureLen < signature.size()) {
-        m_MaxSignatureLen = signature.size();
-      }
-      m_SignatureMap[signature] = item;
-    }
-
-    std::string multiSig = readHandlerProperty<std::string>(i, PropID::kMultiSignature);
-    const char* multiSigBytes = multiSig.c_str();
-    std::size_t size          = multiSig.length();
-    while (size > 0) {
-      unsigned len = *multiSigBytes++;
-      size--;
-      if (len > size)
-        break;
-      std::string sig(multiSigBytes, multiSigBytes + len);
-      multiSigBytes = multiSigBytes + len;
-      size -= len;
-      item.m_Signatures.push_back(sig);
-      if (m_MaxSignatureLen < sig.size()) {
-        m_MaxSignatureLen = sig.size();
-      }
-      m_SignatureMap[sig] = item;
-    }
-
-    UInt32 offset          = readHandlerProperty<UInt32>(i, PropID::kSignatureOffset);
-    item.m_SignatureOffset = offset;
-
-    // Now split the extension up from the space separated string and create
-    // a map from each extension to the possible formats
-    // We could make these pointers but it's not a massive overhead and nobody
-    // should be changing this
-    std::wistringstream s(item.m_Extensions);
-    std::wstring t;
-    while (s >> t) {
-      m_FormatMap[t].push_back(item);
-    }
-    m_Formats.push_back(item);
-  }
-  return S_OK;
-}
+Archive::LogCallback ArchiveImpl::DefaultLogCallback([](LogLevel, QString const&) {});
 
 ArchiveImpl::ArchiveImpl()
-    : m_Valid(false), m_LastError(Error::ERROR_NONE), m_Library(getLibraryPath()),
-      m_ExtractCallback(nullptr), m_PasswordCallback{}
+    : m_Valid(false), m_LastError(Error::ERROR_NONE), m_Library(nullptr),
+      m_ArchivePtr(nullptr), m_ProgressType(ProgressType::EXTRACTION), m_Total(0),
+      m_FileChangeType(FileChangeType::EXTRACTION_START)
 {
   // Reset the log callback:
   setLogCallback({});
 
-  if (!m_Library) {
-    m_LastError = Error::ERROR_LIBRARY_NOT_FOUND;
-    return;
-  }
-
-  m_CreateObjectFunc = m_Library.resolve<CreateObjectFunc>("CreateObject");
-  if (m_CreateObjectFunc == nullptr) {
-    m_LastError = Error::ERROR_LIBRARY_INVALID;
-    return;
-  }
-
-  m_GetHandlerPropertyFunc = m_Library.resolve<GetPropertyFunc>("GetHandlerProperty2");
-  if (m_GetHandlerPropertyFunc == nullptr) {
-    m_LastError = Error::ERROR_LIBRARY_INVALID;
-    return;
-  }
-
+  // the default constructor would look for "7z.dll" on windows and
+  // "/usr/lib/p7zip/7z.so" on linux
   try {
-    if (loadFormats() != S_OK) {
-      m_LastError = Error::ERROR_LIBRARY_INVALID;
-      return;
-    }
-
-    m_Valid = true;
-    return;
-  } catch (std::exception const& e) {
-    m_LogCallback(LogLevel::Error, std::format(L"Caught exception {}.", e));
-    m_LastError = Error::ERROR_LIBRARY_INVALID;
+    m_Library = make_unique<Bit7zLibrary>(getLibraryPath());
+    m_Valid   = true;
+  } catch (const BitException& ex) {
+    reportError("Could not find 7z library: "_L1 % ex.what());
+    m_LastError = Error::ERROR_LIBRARY_NOT_FOUND;
   }
 }
 
@@ -359,246 +178,74 @@ ArchiveImpl::~ArchiveImpl()
 bool ArchiveImpl::open(std::filesystem::path const& archiveName,
                        PasswordCallback passwordCallback)
 {
-  m_ArchiveName = archiveName;  // Just for debugging, not actually used...
-
-  Formats formatList = m_Formats;
-
-  // Convert to long path if it's not already:
-  std::filesystem::path filepath = IO::make_path(archiveName);
+  if (!m_Valid) {
+    if (m_LastError == Error::ERROR_LIBRARY_NOT_FOUND) {
+      reportError(u"Could not open 7z library"_s);
+    } else {
+      reportError("Unknown error, id: "_L1 %
+                  QString::number(static_cast<int>(m_LastError)));
+    }
+    return false;
+  }
 
   // If it doesn't exist or is a directory, error
-  if (!exists(filepath) || is_directory(filepath)) {
+  if (!exists(archiveName) || is_directory(archiveName)) {
     m_LastError = Error::ERROR_ARCHIVE_NOT_FOUND;
+    reportError(QStringLiteral("Archive file %1 not found").arg(archiveName.native()));
     return false;
   }
 
-  // in rars the password seems to be requested during extraction, not on open, so we
-  // need to hold on to the callback for now
-  m_PasswordCallback = passwordCallback;
-
-  CMyComPtr<InputStream> file(new InputStream);
-
-  if (!file->Open(filepath)) {
-    m_LastError = Error::ERROR_FAILED_TO_OPEN_ARCHIVE;
-    return false;
-  }
-
-  CMyComPtr<CArchiveOpenCallback> openCallbackPtr;
   try {
-    openCallbackPtr =
-        new CArchiveOpenCallback(passwordCallback, m_LogCallback, filepath);
-  } catch (std::runtime_error const&) {
+    if (BitArchiveReader::isHeaderEncrypted(*m_Library, archiveName.native(),
+                                            BitFormat::Auto)) {
+      m_Password = passwordCallback();
+    }
+
+    m_ArchivePtr = make_unique<BitArchiveReader>(*m_Library, archiveName.native(),
+                                                 BitFormat::Auto, toNative(m_Password));
+    m_PasswordCallback = passwordCallback;
+    m_ArchivePtr->setPasswordCallback([this] {
+      return passwordCallbackWrapper();
+    });
+
+    m_Total = m_ArchivePtr->size();
+
+    m_LastError = Error::ERROR_NONE;
+    resetFileList();
+    return true;
+
+  } catch (const BitException& ex) {
     m_LastError = Error::ERROR_FAILED_TO_OPEN_ARCHIVE;
+    reportError(ex.what());
     return false;
   }
-
-  // Try to open the archive
-
-  bool sigMismatch = false;
-
-  {
-    // Get the first iterator that is strictly > the signature we're looking for.
-    for (const auto& signatureInfo : m_SignatureMap) {
-      // Read the signature of the file and look that up.
-      std::vector<char> buff;
-      buff.reserve(m_MaxSignatureLen);
-      UInt32 act;
-      file->Seek(0, STREAM_SEEK_SET, nullptr);
-      file->Read(buff.data(), static_cast<UInt32>(m_MaxSignatureLen), &act);
-      file->Seek(0, STREAM_SEEK_SET, nullptr);
-      std::string signature = std::string(buff.data(), act);
-      if (signatureInfo.first == std::string(buff.data(), signatureInfo.first.size())) {
-        if (m_CreateObjectFunc(&signatureInfo.second.m_ClassID, &IID_IInArchive,
-                               (void**)&m_ArchivePtr) != S_OK) {
-          m_LastError = Error::ERROR_LIBRARY_ERROR;
-          return false;
-        }
-
-        if (m_ArchivePtr->Open(file, 0, openCallbackPtr) != S_OK) {
-          m_LogCallback(LogLevel::Debug,
-                        std::format(L"Failed to open {} using {} (from signature).",
-                                    archiveName, signatureInfo.second.m_Name));
-          m_ArchivePtr.Release();
-        } else {
-          m_LogCallback(LogLevel::Debug,
-                        std::format(L"Opened {} using {} (from signature).",
-                                    archiveName, signatureInfo.second.m_Name));
-
-          // Retrieve the extension (warning: .extension() contains the dot):
-          std::wstring ext =
-              ArchiveStrings::towlower(filepath.extension().wstring().substr(1));
-          std::wistringstream s(signatureInfo.second.m_Extensions);
-          std::wstring t;
-          bool found = false;
-          while (s >> t) {
-            if (t == ext) {
-              found = true;
-              break;
-            }
-          }
-          if (!found) {
-            m_LogCallback(LogLevel::Warning,
-                          L"The extension of this file did not match the expected "
-                          L"extensions for this format.");
-            sigMismatch = true;
-          }
-        }
-        // Arguably we should give up here if it's not OK if 7zip can't even start
-        // to decode even though we've found the format from the signature.
-        // Sadly, the 7zip API documentation is pretty well non-existant.
-        break;
-      }
-      std::vector<ArchiveFormatInfo>::iterator iter =
-          std::find_if(formatList.begin(), formatList.end(),
-                       [=](const ArchiveFormatInfo& a) -> bool {
-                         return a.m_Name == signatureInfo.second.m_Name;
-                       });
-      if (iter != formatList.end())
-        formatList.erase(iter);
-    }
-  }
-
-  {
-    // determine archive type based on extension
-    Formats const* formats = nullptr;
-    std::wstring ext =
-        ArchiveStrings::towlower(filepath.extension().wstring().substr(1));
-    FormatMap::const_iterator map_iter = m_FormatMap.find(ext);
-    if (map_iter != m_FormatMap.end()) {
-      formats = &map_iter->second;
-      if (formats != nullptr) {
-        if (m_ArchivePtr == nullptr) {
-          // OK, we have some potential formats. If there is only one, try it now. If
-          // there are multiple formats, we'll try by signature lookup first.
-          for (ArchiveFormatInfo format : *formats) {
-            if (m_CreateObjectFunc(&format.m_ClassID, &IID_IInArchive,
-                                   (void**)&m_ArchivePtr) != S_OK) {
-              m_LastError = Error::ERROR_LIBRARY_ERROR;
-              return false;
-            }
-
-            if (m_ArchivePtr->Open(file, 0, openCallbackPtr) != S_OK) {
-              m_LogCallback(LogLevel::Debug,
-                            std::format(L"Failed to open {} using {} (from signature).",
-                                        archiveName, format.m_Name));
-              m_ArchivePtr.Release();
-            } else {
-              m_LogCallback(LogLevel::Debug,
-                            std::format(L"Opened {} using {} (from signature).",
-                                        archiveName, format.m_Name));
-              break;
-            }
-
-            std::vector<ArchiveFormatInfo>::iterator iter =
-                std::find_if(formatList.begin(), formatList.end(),
-                             [=](const ArchiveFormatInfo& a) -> bool {
-                               return a.m_Name == format.m_Name;
-                             });
-            if (iter != formatList.end())
-              formatList.erase(iter);
-          }
-        } else if (sigMismatch) {
-          std::vector<std::wstring> vformats;
-          for (const ArchiveFormatInfo& format : *formats) {
-            vformats.push_back(format.m_Name);
-          }
-          m_LogCallback(
-              LogLevel::Warning,
-              std::format(L"The format(s) expected for this extension are: {}.",
-                          ArchiveStrings::join(vformats, L", ")));
-        }
-      }
-    }
-  }
-
-  if (m_ArchivePtr == nullptr) {
-    m_LogCallback(LogLevel::Warning, L"Trying to open an archive but could not "
-                                     L"recognize the extension or signature.");
-    m_LogCallback(
-        LogLevel::Debug,
-        L"Attempting to open the file with the remaining formats as a fallback...");
-    for (const auto& format : formatList) {
-      if (m_CreateObjectFunc(&format.m_ClassID, &IID_IInArchive,
-                             (void**)&m_ArchivePtr) != S_OK) {
-        m_LastError = Error::ERROR_LIBRARY_ERROR;
-        return false;
-      }
-      if (m_ArchivePtr->Open(file, 0, openCallbackPtr) == S_OK) {
-        m_LogCallback(LogLevel::Debug,
-                      std::format(L"Opened {} using {} (from signature).", archiveName,
-                                  format.m_Name));
-        m_LogCallback(LogLevel::Warning,
-                      L"This archive likely has an incorrect extension.");
-        break;
-      } else
-        m_ArchivePtr.Release();
-    }
-  }
-
-  if (m_ArchivePtr == nullptr) {
-    m_LastError = Error::ERROR_INVALID_ARCHIVE_FORMAT;
-    return false;
-  }
-
-  m_Password = openCallbackPtr->GetPassword();
-  /*
-    UInt32 subFile = ULONG_MAX;
-    {
-      NCOM::CPropVariant prop;
-      if (m_ArchivePtr->GetArchiveProperty(kpidMainSubfile, &prop) != S_OK) {
-        throw std::runtime_error("failed to get property kpidMainSubfile");
-      }
-
-      if (prop.vt == VT_UI4) {
-        subFile = prop.ulVal;
-      }
-    }
-
-    if (subFile != ULONG_MAX) {
-      std::wstring subPath = GetArchiveItemPath(m_ArchivePtr, subFile);
-
-      CMyComPtr<IArchiveOpenSetSubArchiveName> setSubArchiveName;
-      openCallbackPtr.QueryInterface(IID_IArchiveOpenSetSubArchiveName, (void
-    **)&setSubArchiveName); if (setSubArchiveName) {
-        setSubArchiveName->SetSubArchiveName(subPath.c_str());
-      }
-    }*/
-
-  m_LastError = Error::ERROR_NONE;
-
-  resetFileList();
-  return true;
 }
 
 void ArchiveImpl::close()
 {
-  if (m_ArchivePtr != nullptr) {
-    m_ArchivePtr->Close();
-  }
+  m_ArchivePtr.reset();
   clearFileList();
-  m_ArchivePtr.Release();
   m_PasswordCallback = {};
+  m_shouldCancel.store(false);
 }
 
 void ArchiveImpl::clearFileList()
 {
-  for (auto& iter : m_FileList) {
-    delete iter;
+  for (FileData* iter : m_FileList) {
+    delete dynamic_cast<FileDataImpl*>(iter);
   }
   m_FileList.clear();
 }
 
 void ArchiveImpl::resetFileList()
 {
-  UInt32 numItems = 0;
   clearFileList();
 
-  m_ArchivePtr->GetNumberOfItems(&numItems);
+  m_FileList.reserve(m_ArchivePtr->itemsCount());
 
-  for (UInt32 i = 0; i < numItems; ++i) {
-    m_FileList.push_back(new FileDataImpl(
-        readProperty<std::wstring>(i, kpidPath), readProperty<UInt64>(i, kpidSize),
-        readProperty<UInt64>(i, kpidCRC), readProperty<bool>(i, kpidIsDir)));
+  for (const auto& item : *m_ArchivePtr) {
+    m_FileList.push_back(
+        new FileDataImpl(item.path(), item.size(), item.crc(), item.isDir()));
   }
 }
 
@@ -608,48 +255,164 @@ bool ArchiveImpl::extract(std::filesystem::path const& outputDirectory,
                           ErrorCallback errorCallback)
 
 {
-  // Retrieve the list of indices we want to extract:
-  std::vector<UInt32> indices;
-  UInt64 totalSize = 0;
-  for (std::size_t i = 0; i < m_FileList.size(); ++i) {
-    FileDataImpl* fileData = dynamic_cast<FileDataImpl*>(m_FileList[i]);
-    if (!fileData->isEmpty()) {
-      indices.push_back(static_cast<UInt32>(i));
-      totalSize += fileData->getSize();
+  if (!m_Valid) {
+    return false;
+  }
+
+  try {
+    m_ProgressCallback   = progressCallback;
+    m_FileChangeCallback = fileChangeCallback;
+    m_ErrorCallback      = errorCallback;
+
+    // set file changed callback
+    if (m_FileChangeCallback) {
+      m_FileChangeType = FileChangeType::EXTRACTION_START;
+
+      m_ArchivePtr->setFileCallback([this](const tstring& path) {
+        fileChangeCallbackWrapper(std::forward<fs::path>(fs::path(path)));
+      });
     }
-  }
 
-  m_ExtractCallback = new CArchiveExtractCallback(
-      progressCallback, fileChangeCallback, errorCallback, m_PasswordCallback,
-      m_LogCallback, m_ArchivePtr, outputDirectory, &m_FileList[0], m_FileList.size(),
-      totalSize, &m_Password);
-  HRESULT result = m_ArchivePtr->Extract(
-      indices.data(), static_cast<UInt32>(indices.size()), false, m_ExtractCallback);
-  // Note: m_ExtractCallBack is deleted by Extract
-  switch (result) {
-  case S_OK: {
-    // nop
-  } break;
-  case E_ABORT: {
-    m_LastError = Error::ERROR_EXTRACT_CANCELLED;
-  } break;
-  case E_OUTOFMEMORY: {
-    m_LastError = Error::ERROR_OUT_OF_MEMORY;
-  } break;
-  default: {
-    m_LastError = Error::ERROR_LIBRARY_ERROR;
-  } break;
-  }
+    // we could test the archive if we wanted to by calling
+    // m_ArchivePtr->test();
 
-  return result == S_OK;
+    // Retrieve the list of indices we want to extract:
+    vector<uint32_t> indices;
+
+    // whether to use simple extraction
+    bool allSimple = true;
+
+    for (size_t i = 0; i < m_FileList.size(); ++i) {
+      auto* fileData = dynamic_cast<FileDataImpl*>(m_FileList[i]);
+      if (!fileData->isEmpty()) {
+        indices.push_back(i);
+        const auto& outputs = fileData->getOutputFilePaths();
+        if (outputs.size() != 1 || outputs[0] != fileData->getArchiveFilePath()) {
+          allSimple = false;
+        }
+      }
+    }
+
+    if (m_ProgressCallback) {
+      m_ArchivePtr->setProgressCallback([this](uint64_t current) {
+        return progressCallbackWrapper(current);
+      });
+    }
+
+    if (allSimple) {
+      m_ArchivePtr->extractTo(outputDirectory.native(), indices);
+      for (auto* fileData : m_FileList) {
+        fileData->clearOutputFilePaths();
+      }
+      return true;
+    }
+
+    std::error_code ec;
+
+    const QTemporaryDir tmpDir;
+    if (!tmpDir.isValid()) {
+      m_LastError = Error::ERROR_OUT_OF_MEMORY;
+      reportError("Error creating a temporary directory for extraction, "_L1 %
+                  tmpDir.errorString());
+      return false;
+    }
+
+    const tstring tmpDirPath = toNative(tmpDir.path());
+
+    // extract files into a temporary location
+    m_ArchivePtr->extractTo(tmpDirPath, indices);
+
+    // copy files to target locations
+    for (auto* fileData : m_FileList) {
+      // handle directories
+      if (fileData->isDirectory()) {
+        for (const auto& outputFilePath : fileData->getOutputFilePaths()) {
+          fs::path targetDirectory = outputDirectory / outputFilePath;
+          create_directories(targetDirectory, ec);
+          if (ec) {
+            m_LastError = Error::ERROR_LIBRARY_ERROR;
+            reportError(QStringLiteral("Error creating output directory %1: %2")
+                            .arg(targetDirectory.native(), ec.message()));
+            return false;
+          }
+        }
+      } else {
+        // handle files
+        for (const auto& outputFilePath : fileData->getOutputFilePaths()) {
+          // create output directory
+          fs::path targetDirectory = outputDirectory;
+          if (outputFilePath.has_parent_path()) {
+            targetDirectory /= outputFilePath.parent_path();
+          }
+          create_directories(targetDirectory, ec);
+          if (ec) {
+            m_LastError = Error::ERROR_LIBRARY_ERROR;
+            reportError(QStringLiteral("Error creating output directory %1: %2")
+                            .arg(targetDirectory.native(), ec.message()));
+            return false;
+          }
+          // copy file
+          copy_file(tmpDirPath / fileData->getArchiveFilePath(),
+                    outputDirectory / outputFilePath, ec);
+          if (ec) {
+            m_LastError = Error::ERROR_LIBRARY_ERROR;
+            reportError(
+                QStringLiteral("Error writing to output file %1: %2")
+                    .arg((outputDirectory / outputFilePath).native(), ec.message()));
+            return false;
+          }
+        }
+      }
+      fileData->clearOutputFilePaths();
+    }
+
+    return true;
+  } catch (const BitException& ex) {
+    if (m_shouldCancel) {
+      m_LastError = Error::ERROR_EXTRACT_CANCELLED;
+    } else {
+      m_LastError = Error::ERROR_LIBRARY_ERROR;
+    }
+    reportError(ex.what());
+    return false;
+  }
 }
 
 void ArchiveImpl::cancel()
 {
-  m_ExtractCallback->SetCanceled(true);
+  m_shouldCancel.store(true);
 }
 
-std::unique_ptr<Archive> CreateArchive()
+void ArchiveImpl::reportError(const QString& message) const
+{
+  if (m_ErrorCallback) {
+    m_ErrorCallback(message);
+  } else {
+    m_LogCallback(LogLevel::Error, message);
+  }
+}
+
+tstring ArchiveImpl::passwordCallbackWrapper()
+{
+  // only ask for password once
+  if (m_Password.isEmpty() && m_PasswordCallback) {
+    m_Password = m_PasswordCallback();
+  }
+  return toNative(m_Password);
+}
+
+bool ArchiveImpl::progressCallbackWrapper(uint64_t current) const
+{
+  m_ProgressCallback(m_ProgressType, current, m_Total);
+  return !m_shouldCancel;
+}
+
+void ArchiveImpl::fileChangeCallbackWrapper(const std::filesystem::path& path) const
+{
+  m_FileChangeCallback(m_FileChangeType, path);
+}
+
+DLLEXPORT std::unique_ptr<Archive> CreateArchive()
 {
   return std::make_unique<ArchiveImpl>();
 }

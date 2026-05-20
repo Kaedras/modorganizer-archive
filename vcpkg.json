@@ -1,6 +1,6 @@
 {
   "dependencies": [
-    "7zip"
+    "bit7z"
   ],
   "features": {
     "testing": {
