@@ -44,8 +44,7 @@ TEST_P(ArchiveTest, Archive)
 
   INIT(archive);
 
-  vector<FileData*> files = a->getFileList();
-  for (FileData* file : files) {
+  for (FileData* file : a->getFileList()) {
     file->addOutputFilePath(file->getArchiveFilePath());
   }
 
