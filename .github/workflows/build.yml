@@ -8,7 +8,7 @@ on:
 
 env:
   VCPKG_BINARY_SOURCES: clear;x-azblob,${{ vars.AZ_BLOB_VCPKG_URL }},${{ secrets.AZ_BLOB_SAS }},readwrite
-  QT_VERSION: 6.11.1
+  QT_VERSION: 6.10.3
 
 jobs:
   build:
