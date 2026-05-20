@@ -7,7 +7,7 @@ include(GNUInstallDirs)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
-option(BUILD_TESTING "Build unit tests" ON)
+option(BUILD_TESTING "Build unit tests" OFF)
 
 add_subdirectory(src)
 if(BUILD_TESTING)

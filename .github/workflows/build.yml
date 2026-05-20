@@ -38,7 +38,7 @@ jobs:
 
       - name: Configure Archive build
         run: |
-          cmake --preset ${{ matrix.preset }} "-DCMAKE_INSTALL_PREFIX=install"
+          cmake --preset ${{ matrix.preset }} "-DCMAKE_INSTALL_PREFIX=install" -DBUILD_TESTING=ON
 
       - name: Build Archive
         run: cmake --build ${{ matrix.build_dir }} --config RelWithDebInfo

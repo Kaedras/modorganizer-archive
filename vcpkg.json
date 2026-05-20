@@ -2,6 +2,14 @@
   "dependencies": [
     "7zip"
   ],
+  "features": {
+    "testing": {
+      "description": "Build tests",
+      "dependencies": [
+        "gtest"
+      ]
+    }
+  },
   "vcpkg-configuration": {
     "default-registry": {
       "kind": "git",
