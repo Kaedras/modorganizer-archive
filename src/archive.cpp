@@ -300,7 +300,7 @@ bool ArchiveImpl::extract(std::filesystem::path const& outputDirectory,
     }
 
     if (allSimple) {
-      m_ArchivePtr->extractTo(outputDirectory.native(), indices);
+      m_ArchivePtr->extractTo(to_tstring(outputDirectory.native()), indices);
       for (auto* fileData : m_FileList) {
         fileData->clearOutputFilePaths();
       }
