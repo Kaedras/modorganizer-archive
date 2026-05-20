@@ -36,18 +36,19 @@ TEST_P(ArchiveTest, Archive)
   ASSERT_TRUE(tmpDir.isValid()) << tmpDir.errorString().toStdString();
 
   auto a = CreateArchive();
-  ASSERT_TRUE(a->isValid()) << "error " << static_cast<int>(a->getLastError());
+  ASSERT_TRUE(a->isValid()) << a->errorString().toStdString();
   a->setLogCallback(logCallback);
 
   ASSERT_TRUE(a->open("files/" + archive, passwordCallback))
-      << "error " << static_cast<int>(a->getLastError());
+      << a->errorString().toStdString();
 
   vector<FileData*> files = a->getFileList();
   for (FileData* file : files) {
     file->addOutputFilePath(file->getArchiveFilePath());
   }
 
-  EXPECT_TRUE(a->extract(tmpDir.path().toStdString(), nullptr, nullptr, errorCallback));
+  EXPECT_TRUE(a->extract(tmpDir.path().toStdString(), nullptr, nullptr, errorCallback))
+      << a->errorString().toStdString();
   // system("tree /tmp/archive-test");
 }
 
