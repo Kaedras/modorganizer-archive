@@ -4,7 +4,6 @@
 #include <bit7z/bitarchivereader.hpp>
 #include <bit7z/bitformat.hpp>
 
-#include <QTemporaryDir>
 #include <atomic>
 #include <filesystem>
 #include <fstream>
@@ -292,12 +291,18 @@ bool ArchiveImpl::extract(std::filesystem::path const& outputDirectory,
     m_FileChangeCallback = fileChangeCallback;
     m_ErrorCallback      = errorCallback;
 
-    // set file changed callback
+    // set file callback
+    // currentFile is required to know which file is being extracted in the
+    // RawDataCallback
+    tstring currentFile;
     if (m_FileChangeCallback) {
-      m_FileChangeType = FileChangeType::EXTRACTION_START;
-
-      m_ArchivePtr->setFileCallback([this](const tstring& path) {
-        fileChangeCallbackWrapper(std::forward<fs::path>(fs::path(path)));
+      m_ArchivePtr->setFileCallback([&](const tstring& path) {
+        currentFile = path;
+        m_FileChangeCallback(m_FileChangeType, fs::path(path));
+      });
+    } else {
+      m_ArchivePtr->setFileCallback([&](const tstring& path) {
+        currentFile = path;
       });
     }
 
@@ -312,12 +317,17 @@ bool ArchiveImpl::extract(std::filesystem::path const& outputDirectory,
 
     m_Total = 0;
 
+    // used to look up FileData by path
+    std::unordered_map<tstring, FileDataImpl*> fileMap;
+
     for (size_t i = 0; i < m_FileList.size(); ++i) {
       auto* fileData = dynamic_cast<FileDataImpl*>(m_FileList[i]);
+      fileMap.emplace(to_tstring(fileData->getArchiveFilePath().native()), fileData);
+
       if (!fileData->isEmpty()) {
         indices.push_back(static_cast<uint32_t>(i));
         const auto& outputs = fileData->getOutputFilePaths();
-        if (outputs.size() != 1 || outputs[0] != fileData->getArchiveFilePath()) {
+        if (outputs.size() > 1 || outputs[0] != fileData->getArchiveFilePath()) {
           allSimple = false;
         }
         m_Total += fileData->getSize();
@@ -333,72 +343,54 @@ bool ArchiveImpl::extract(std::filesystem::path const& outputDirectory,
     }
 
     if (allSimple) {
-      m_ArchivePtr->extractTo(to_tstring(outputDirectory.native()), indices);
+      m_ArchivePtr->extractTo(to_tstring(outputDirectory.native()));
       for (auto* fileData : m_FileList) {
         fileData->clearOutputFilePaths();
       }
       return true;
     }
 
-    std::error_code ec;
-
-    const QTemporaryDir tmpDir;
-    if (!tmpDir.isValid()) {
-      m_LastError = Error::ERROR_OUT_OF_MEMORY;
-      reportError("Error creating a temporary directory for extraction, "_L1 %
-                  tmpDir.errorString());
-      return false;
-    }
-
-    const tstring tmpDirPath = toNative(tmpDir.path());
-
-    // extract files into a temporary location
-    m_ArchivePtr->extractTo(tmpDirPath, indices);
-
-    // copy files to target locations
-    for (auto* fileData : m_FileList) {
-      // handle directories
-      if (fileData->isDirectory()) {
-        for (const auto& outputFilePath : fileData->getOutputFilePaths()) {
-          fs::path targetDirectory = outputDirectory / outputFilePath;
-          create_directories(targetDirectory, ec);
+    // extract files
+    error_code ec;
+    RawDataCallback callback = [&](const byte_t* data, std::size_t size) -> bool {
+      FileDataImpl* fileData = fileMap.at(currentFile);
+      for (const fs::path& outputFilePath : fileData->getOutputFilePaths()) {
+        // create output directory
+        if (outputFilePath.has_parent_path()) {
+          fs::path parentPath = outputDirectory / outputFilePath.parent_path();
+          fs::create_directories(parentPath, ec);
           if (ec) {
             m_LastError = Error::ERROR_LIBRARY_ERROR;
             reportError(QStringLiteral("Error creating output directory %1: %2")
-                            .arg(targetDirectory.native(), ec.message()));
+                            .arg(parentPath.native(), ec.message()));
             return false;
           }
         }
-      } else {
-        // handle files
-        for (const auto& outputFilePath : fileData->getOutputFilePaths()) {
-          // create output directory
-          fs::path targetDirectory = outputDirectory;
-          if (outputFilePath.has_parent_path()) {
-            targetDirectory /= outputFilePath.parent_path();
-          }
-          create_directories(targetDirectory, ec);
-          if (ec) {
-            m_LastError = Error::ERROR_LIBRARY_ERROR;
-            reportError(QStringLiteral("Error creating output directory %1: %2")
-                            .arg(targetDirectory.native(), ec.message()));
-            return false;
-          }
-          // copy file
-          copy_file(tmpDirPath / fileData->getArchiveFilePath(),
-                    outputDirectory / outputFilePath,
-                    fs::copy_options::overwrite_existing, ec);
-          if (ec) {
-            m_LastError = Error::ERROR_LIBRARY_ERROR;
-            reportError(
-                QStringLiteral("Error writing to output file %1: %2")
-                    .arg((outputDirectory / outputFilePath).native(), ec.message()));
-            return false;
-          }
+
+        // write file
+        ofstream ofs(outputDirectory / outputFilePath, ios::binary | ios::trunc);
+        try {
+          ofs.exceptions(ios::failbit | ios::badbit);
+          ofs.write(reinterpret_cast<const char*>(data), size);
+        } catch (const ios_base::failure& ex) {
+          reportError(QStringLiteral("Error writing to %1: %2")
+                          .arg((outputDirectory / outputFilePath).native(), ex.what()));
+          return false;
         }
       }
+
       fileData->clearOutputFilePaths();
+      return true;
+    };
+
+    create_directories(outputDirectory, ec);
+    if (ec) {
+      m_LastError = Error::ERROR_LIBRARY_ERROR;
+      reportError(QStringLiteral("Error creating output directory %1: %2")
+                      .arg(outputDirectory.native(), ec.message()));
+      return false;
     }
+    m_ArchivePtr->extractTo(callback, indices);
 
     return true;
   } catch (const BitException& ex) {
