@@ -1,35 +1,61 @@
 #include "archive/archive.h"
 
-#include <QTemporaryDir>
 #include <gtest/gtest.h>
 
 using namespace std;
 namespace fs = std::filesystem;
 
-QString passwordCallback()
+#ifdef __unix__
+#define NATIVE_OUT cout
+#define NATIVE_ERR cerr
+#define NATIVE_STRING(str) str
+#else
+#define NATIVE_OUT wcout
+#define NATIVE_ERR wcerr
+#define NATIVE_STRING(str) L##str
+#endif
+
+struct TemporaryDir
 {
-  return QStringLiteral("password");
+  TemporaryDir() : path(fs::temp_directory_path() / "mo2-archive-test")
+  {
+    fs::create_directory(path, ec);
+  }
+
+  ~TemporaryDir() { fs::remove_all(path); }
+
+  bool isValid() const { return !ec; }
+
+  string errorString() const { return ec.message(); }
+
+  const fs::path path;
+  error_code ec;
+};
+
+native_string passwordCallback()
+{
+  return NATIVE_STRING("password");
 }
 
-void logCallback(Archive::LogLevel, const QString& log)
+void logCallback(Archive::LogLevel, const native_string& log)
 {
-  std::cout << log.toStdString() << '\n';
+  NATIVE_OUT << log << '\n';
 }
 
-void errorCallback(const QString& log)
+void errorCallback(const native_string& log)
 {
-  std::cerr << log.toStdString() << '\n';
+  NATIVE_ERR << log << '\n';
 }
 
 // create tmp dir and open an archive
 #define INIT(filename)                                                                 \
-  QTemporaryDir tmpDir;                                                                \
-  ASSERT_TRUE(tmpDir.isValid()) << tmpDir.errorString().toStdString();                 \
+  TemporaryDir tmpDir;                                                                 \
+  ASSERT_TRUE(tmpDir.isValid()) << tmpDir.errorString();                               \
   auto a = CreateArchive();                                                            \
-  ASSERT_TRUE(a->isValid()) << a->errorString().toStdString();                         \
+  ASSERT_TRUE(a->isValid()) << "error " << (int)a->getLastError();                     \
   a->setLogCallback(logCallback);                                                      \
   ASSERT_TRUE(a->open("files/"s + filename, passwordCallback))                         \
-      << a->errorString().toStdString()
+      << "error " << (int)a->getLastError()
 
 class ArchiveTest : public testing::TestWithParam<string>
 {};
@@ -42,8 +68,8 @@ TEST_P(ArchiveTest, Archive)
     file->addOutputFilePath(file->getArchiveFilePath());
   }
 
-  EXPECT_TRUE(a->extract(tmpDir.path().toStdString(), nullptr, nullptr, errorCallback))
-      << a->errorString().toStdString();
+  EXPECT_TRUE(a->extract(tmpDir.path, nullptr, nullptr, errorCallback))
+      << (int)a->getLastError();
 }
 
 INSTANTIATE_TEST_SUITE_P(Extract, ArchiveTest,
@@ -59,14 +85,16 @@ TEST(ArchiveTest, NoOutputPaths)
 {
   INIT("test.7z");
 
-  ASSERT_TRUE(a->extract(tmpDir.path().toStdString(), nullptr, nullptr, errorCallback))
-      << a->errorString().toStdString();
+  ASSERT_TRUE(a->extract(tmpDir.path, nullptr, nullptr, errorCallback))
+      << (int)a->getLastError();
 
   // check if output directory is empty
-  const QDir dir(tmpDir.path());
-  auto entryList = dir.entryList(QDir::AllEntries | QDir::NoDotAndDotDot);
-  ASSERT_TRUE(entryList.isEmpty())
-      << "Directory contains " << entryList.join(';').toStdString();
+  int count = 0;
+  for ([[maybe_unused]] const auto& entry :
+       fs::recursive_directory_iterator(tmpDir.path)) {
+    ++count;
+  }
+  ASSERT_EQ(count, 0) << "output directory is not empty";
 }
 
 TEST(ArchiveTest, FileChangeCallback)
@@ -86,9 +114,8 @@ TEST(ArchiveTest, FileChangeCallback)
         callbackFiles += path.generic_string() + ";";
       };
 
-  ASSERT_TRUE(a->extract(tmpDir.path().toStdString(), nullptr, fileChangeCallback,
-                         errorCallback))
-      << a->errorString().toStdString();
+  ASSERT_TRUE(a->extract(tmpDir.path, nullptr, fileChangeCallback, errorCallback))
+      << (int)a->getLastError();
 
   // remove trailing ';'
   if (!callbackFiles.empty()) {
@@ -99,8 +126,12 @@ TEST(ArchiveTest, FileChangeCallback)
 
   EXPECT_EQ(callbackFiles, expectedResult);
 
-  const QDir dir(tmpDir.path());
-  const auto entryList = dir.entryList(QDir::AllEntries | QDir::NoDotAndDotDot);
-  ASSERT_EQ(entryList.size(), 1)
-      << "Directory contains " << entryList.join(';').toStdString();
+  int count = 0;
+  for ([[maybe_unused]] const auto& entry :
+       fs::recursive_directory_iterator(tmpDir.path)) {
+    if (entry.is_regular_file()) {
+      ++count;
+    }
+  }
+  ASSERT_EQ(count, 1);
 }

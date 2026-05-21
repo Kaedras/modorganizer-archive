@@ -1,12 +1,11 @@
 cmake_minimum_required(VERSION 3.16)
 
 find_package(unofficial-bit7z CONFIG REQUIRED)
-find_package(Qt6 CONFIG REQUIRED COMPONENTS Core)
 
 add_library(mo2-archive)
 
 set_target_properties(mo2-archive PROPERTIES CXX_STANDARD 20)
-target_link_libraries(mo2-archive PRIVATE unofficial::bit7z::bit7z64 PUBLIC Qt::Core)
+target_link_libraries(mo2-archive PRIVATE unofficial::bit7z::bit7z64)
 
 target_sources(mo2-archive
 	PRIVATE

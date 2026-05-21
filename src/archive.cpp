@@ -12,18 +12,9 @@
 
 using namespace bit7z;
 using namespace std;
-using namespace Qt::StringLiterals;
 
 namespace
 {
-tstring toNative(const QString& s)
-{
-#ifdef __unix__
-  return s.toStdString();
-#else
-  return to_tstring(s.toStdWString());
-#endif
-}
 
 tstring getLibraryPath()
 {
@@ -98,7 +89,6 @@ public:
   bool isValid() const override { return m_Valid; }
 
   Error getLastError() const override { return m_LastError; }
-  QString errorString() const override;
   virtual void setLogCallback(LogCallback logCallback) override
   {
     // Wrap the callback so that we do not have to check if it is set everywhere:
@@ -119,7 +109,7 @@ public:
 private:
   void clearFileList();
   void resetFileList();
-  void reportError(const QString& message) const;
+  void reportError(const tstring& message) const;
 
   // callback wrapper functions
   /** @returns true if we should continue extracting, false otherwise */
@@ -146,10 +136,11 @@ private:
 
   std::vector<FileData*> m_FileList;
 
-  QString m_Password;
+  native_string m_Password;
 };
 
-Archive::LogCallback ArchiveImpl::DefaultLogCallback([](LogLevel, QString const&) {});
+Archive::LogCallback ArchiveImpl::DefaultLogCallback([](LogLevel,
+                                                        native_string const&) {});
 
 ArchiveImpl::ArchiveImpl()
     : m_Valid(false), m_LastError(Error::ERROR_NONE), m_Library(nullptr),
@@ -165,7 +156,8 @@ ArchiveImpl::ArchiveImpl()
     m_Library = make_unique<Bit7zLibrary>(getLibraryPath());
     m_Valid   = true;
   } catch (const BitException& ex) {
-    reportError("Could not find 7z library: "_L1 % ex.what());
+    reportError(
+        format(BIT7Z_STRING("Could not find 7z library: {}"), to_tstring(ex.what())));
     m_LastError = Error::ERROR_LIBRARY_NOT_FOUND;
   }
 }
@@ -175,43 +167,15 @@ ArchiveImpl::~ArchiveImpl()
   close();
 }
 
-QString ArchiveImpl::errorString() const
-{
-  switch (m_LastError) {
-  case Error::ERROR_NONE:
-    return QStringLiteral("No error");
-  case Error::ERROR_EXTRACT_CANCELLED:
-    return QStringLiteral("Extract cancelled");
-  case Error::ERROR_LIBRARY_NOT_FOUND:
-    return QStringLiteral("Library not found");
-  case Error::ERROR_LIBRARY_INVALID:
-    return QStringLiteral("Library invalid");
-  case Error::ERROR_ARCHIVE_NOT_FOUND:
-    return QStringLiteral("Archive not found");
-  case Error::ERROR_FAILED_TO_OPEN_ARCHIVE:
-    return QStringLiteral("Failed to open archive");
-  case Error::ERROR_INVALID_ARCHIVE_FORMAT:
-    return QStringLiteral("Invalid archive format");
-  case Error::ERROR_LIBRARY_ERROR:
-    return QStringLiteral("Library error");
-  case Error::ERROR_ARCHIVE_INVALID:
-    return QStringLiteral("Archive invalid");
-  case Error::ERROR_OUT_OF_MEMORY:
-    return QStringLiteral("Out of memory");
-  default:
-    return QStringLiteral("Invalid error code");
-  }
-}
-
 bool ArchiveImpl::open(std::filesystem::path const& archiveName,
                        PasswordCallback passwordCallback)
 {
   if (!m_Valid) {
     if (m_LastError == Error::ERROR_LIBRARY_NOT_FOUND) {
-      reportError(u"Could not open 7z library"_s);
+      reportError(BIT7Z_STRING("Could not open 7z library"));
     } else {
-      reportError("Unknown error, id: "_L1 %
-                  QString::number(static_cast<int>(m_LastError)));
+      reportError(
+          format(BIT7Z_STRING("Unknown error, id: {}"), static_cast<int>(m_LastError)));
     }
     return false;
   }
@@ -219,7 +183,8 @@ bool ArchiveImpl::open(std::filesystem::path const& archiveName,
   // If it doesn't exist or is a directory, error
   if (!exists(archiveName) || is_directory(archiveName)) {
     m_LastError = Error::ERROR_ARCHIVE_NOT_FOUND;
-    reportError(QStringLiteral("Archive file %1 not found").arg(archiveName.native()));
+    reportError(format(BIT7Z_STRING("Archive file {} not found"),
+                       to_tstring(archiveName.native())));
     return false;
   }
 
@@ -231,7 +196,7 @@ bool ArchiveImpl::open(std::filesystem::path const& archiveName,
 
     m_ArchivePtr =
         make_unique<BitArchiveReader>(*m_Library, to_tstring(archiveName.native()),
-                                      BitFormat::Auto, toNative(m_Password));
+                                      BitFormat::Auto, to_tstring(m_Password));
     m_PasswordCallback = passwordCallback;
     m_ArchivePtr->setPasswordCallback([this] {
       return passwordCallbackWrapper();
@@ -361,8 +326,8 @@ bool ArchiveImpl::extract(std::filesystem::path const& outputDirectory,
           fs::create_directories(parentPath, ec);
           if (ec) {
             m_LastError = Error::ERROR_LIBRARY_ERROR;
-            reportError(QStringLiteral("Error creating output directory %1: %2")
-                            .arg(parentPath.native(), ec.message()));
+            reportError(format(BIT7Z_STRING("Error creating output directory {}: {}"),
+                               to_tstring(parentPath.native()), ec.message()));
             return false;
           }
         }
@@ -373,8 +338,9 @@ bool ArchiveImpl::extract(std::filesystem::path const& outputDirectory,
           ofs.exceptions(ios::failbit | ios::badbit);
           ofs.write(reinterpret_cast<const char*>(data), size);
         } catch (const ios_base::failure& ex) {
-          reportError(QStringLiteral("Error writing to %1: %2")
-                          .arg((outputDirectory / outputFilePath).native(), ex.what()));
+          reportError(format(BIT7Z_STRING("Error writing to {}: {}"),
+                             to_tstring((outputDirectory / outputFilePath).native()),
+                             ex.what()));
           return false;
         }
       }
@@ -386,8 +352,8 @@ bool ArchiveImpl::extract(std::filesystem::path const& outputDirectory,
     create_directories(outputDirectory, ec);
     if (ec) {
       m_LastError = Error::ERROR_LIBRARY_ERROR;
-      reportError(QStringLiteral("Error creating output directory %1: %2")
-                      .arg(outputDirectory.native(), ec.message()));
+      reportError(format(BIT7Z_STRING("Error creating output directory {}: {}"),
+                         to_tstring(outputDirectory.native()), ec.message()));
       return false;
     }
     m_ArchivePtr->extractTo(callback, indices);
@@ -409,33 +375,28 @@ void ArchiveImpl::cancel()
   m_shouldCancel.store(true);
 }
 
-void ArchiveImpl::reportError(const QString& message) const
+void ArchiveImpl::reportError(const tstring& message) const
 {
   if (m_ErrorCallback) {
-    m_ErrorCallback(message);
+    m_ErrorCallback(to_native_string(message));
   } else {
-    m_LogCallback(LogLevel::Error, message);
+    m_LogCallback(LogLevel::Error, to_native_string(message));
   }
 }
 
 tstring ArchiveImpl::passwordCallbackWrapper()
 {
   // only ask for password once
-  if (m_Password.isEmpty() && m_PasswordCallback) {
+  if (m_Password.empty() && m_PasswordCallback) {
     m_Password = m_PasswordCallback();
   }
-  return toNative(m_Password);
+  return to_tstring(m_Password);
 }
 
 bool ArchiveImpl::progressCallbackWrapper(uint64_t current) const
 {
   m_ProgressCallback(m_ProgressType, current, m_Total);
   return !m_shouldCancel.load();
-}
-
-void ArchiveImpl::fileChangeCallbackWrapper(const std::filesystem::path& path) const
-{
-  m_FileChangeCallback(m_FileChangeType, path);
 }
 
 DLLEXPORT std::unique_ptr<Archive> CreateArchive()

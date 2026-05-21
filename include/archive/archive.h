@@ -21,19 +21,27 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #ifndef ARCHIVE_H
 #define ARCHIVE_H
 
-#include <QString>
-#include <QtCompilerDetection>
 #include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <memory>
 
+#ifdef __unix__
+using native_string = std::string;
+#define EXPORT __attribute__((visibility("default")))
+#define IMPORT
+#else
+using native_string = std::wstring;
+#define EXPORT __declspec(dllexport)
+#define IMPORT __declspec(dllimport)
+#endif
+
 #if defined(MO2_ARCHIVE_BUILD_STATIC)
 #define DLLEXPORT
 #elif defined(MO2_ARCHIVE_BUILD_EXPORT)
-#define DLLEXPORT Q_DECL_EXPORT
+#define DLLEXPORT EXPORT
 #else
-#define DLLEXPORT Q_DECL_IMPORT
+#define DLLEXPORT IMPORT
 #endif
 
 class FileData
@@ -131,12 +139,12 @@ public:  // Declarations
   /**
    * List of callbacks:
    */
-  using LogCallback      = std::function<void(LogLevel, QString const& log)>;
+  using LogCallback      = std::function<void(LogLevel, native_string const& log)>;
   using ProgressCallback = std::function<void(ProgressType, uint64_t, uint64_t)>;
-  using PasswordCallback = std::function<QString()>;
+  using PasswordCallback = std::function<native_string()>;
   using FileChangeCallback =
       std::function<void(FileChangeType, std::filesystem::path const&)>;
-  using ErrorCallback = std::function<void(QString const&)>;
+  using ErrorCallback = std::function<void(native_string const&)>;
 
   /**
    *
@@ -175,11 +183,6 @@ public:
    * @return retrieve the error-code of the last error that occurred.
    */
   virtual Error getLastError() const = 0;
-
-  /**
-   * @return retrieve a string describing the last error that occurred.
-   */
-  virtual QString errorString() const = 0;
 
   /**
    * @brief Set the callback used to log messages.

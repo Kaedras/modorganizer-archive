@@ -1,11 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
 
 find_package(GTest REQUIRED)
-find_package(Qt6 REQUIRED COMPONENTS Core)
 
 add_executable(archive-test test.cpp)
 set_target_properties(archive-test PROPERTIES CXX_STANDARD 20)
-target_link_libraries(archive-test PRIVATE mo2::archive GTest::gtest GTest::gtest_main Qt::Core)
+target_link_libraries(archive-test PRIVATE mo2::archive GTest::gtest GTest::gtest_main)
 
 # copy test files
 add_custom_command(TARGET archive-test POST_BUILD COMMAND "${CMAKE_COMMAND}" -E copy_directory "${CMAKE_SOURCE_DIR}/tests/files" "${CMAKE_CURRENT_BINARY_DIR}/files" COMMENT "Copy test files")
