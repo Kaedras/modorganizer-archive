@@ -386,7 +386,8 @@ bool ArchiveImpl::extract(std::filesystem::path const& outputDirectory,
           }
           // copy file
           copy_file(tmpDirPath / fileData->getArchiveFilePath(),
-                    outputDirectory / outputFilePath, ec);
+                    outputDirectory / outputFilePath,
+                    fs::copy_options::overwrite_existing, ec);
           if (ec) {
             m_LastError = Error::ERROR_LIBRARY_ERROR;
             reportError(
