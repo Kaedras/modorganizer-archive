@@ -114,7 +114,6 @@ private:
   // callback wrapper functions
   /** @returns true if we should continue extracting, false otherwise */
   [[nodiscard]] bool progressCallbackWrapper(uint64_t current) const;
-  void fileChangeCallbackWrapper(const std::filesystem::path& path) const;
   tstring passwordCallbackWrapper();
 
   bool m_Valid;
