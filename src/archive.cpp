@@ -20,8 +20,16 @@ tstring getLibraryPath()
 {
 #ifdef __unix__
   // list of 7z library paths including fallback locations
-  static constexpr std::array libraryPaths{"lib/lib7zip.so", "/usr/lib/7zip/7z.so",
-                                           "/usr/lib64/7zip/7z.so"};
+  vector<fs::path> libraryPaths;
+
+  if (getenv("APPIMAGE") != nullptr && getenv("APPDIR") != nullptr) {
+    const fs::path appDir = getenv("APPDIR");
+    libraryPaths          = {appDir / "lib/7z.so"};
+  } else {
+    libraryPaths.insert(libraryPaths.end(), {"lib/lib7zip.so", "/usr/lib/7zip/7z.so",
+                                             "/usr/lib64/7zip/7z.so"});
+  }
+
   for (const auto& libraryPath : libraryPaths) {
     if (std::filesystem::exists(libraryPath)) {
       return libraryPath;
