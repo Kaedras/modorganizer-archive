@@ -238,8 +238,6 @@ bool ArchiveImpl::open(std::filesystem::path const& archiveName,
       return passwordCallbackWrapper();
     });
 
-    m_Total = m_ArchivePtr->size();
-
     m_LastError = Error::ERROR_NONE;
     resetFileList();
     return true;
@@ -312,6 +310,8 @@ bool ArchiveImpl::extract(std::filesystem::path const& outputDirectory,
     // whether to use simple extraction
     bool allSimple = true;
 
+    m_Total = 0;
+
     for (size_t i = 0; i < m_FileList.size(); ++i) {
       auto* fileData = dynamic_cast<FileDataImpl*>(m_FileList[i]);
       if (!fileData->isEmpty()) {
@@ -320,6 +320,7 @@ bool ArchiveImpl::extract(std::filesystem::path const& outputDirectory,
         if (outputs.size() != 1 || outputs[0] != fileData->getArchiveFilePath()) {
           allSimple = false;
         }
+        m_Total += fileData->getSize();
       } else {
         allSimple = false;
       }
