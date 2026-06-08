@@ -78,6 +78,22 @@
       "generator": "Ninja Multi-Config",
       "inherits": ["cmake-dev", "vcpkg"],
       "name": "linux"
+    },
+    {
+      "binaryDir": "${sourceDir}/build-mingw",
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS": "-Wall -Wextra -Wpedantic -Wno-unknown-pragmas -Wno-pointer-arith -fvisibility-ms-compat -Wl,--no-undefined",
+        "CMAKE_SYSTEM_NAME": "Windows",
+        "CMAKE_C_COMPILER": "x86_64-w64-mingw32-gcc",
+        "CMAKE_CXX_COMPILER": "x86_64-w64-mingw32-g++",
+        "VCPKG_TARGET_TRIPLET": {
+          "type": "STRING",
+          "value": "x64-mingw-static"
+        }
+      },
+      "generator": "Ninja Multi-Config",
+      "inherits": ["cmake-dev", "vcpkg"],
+      "name": "linux-mingw"
     }
   ],
   "buildPresets": [
@@ -88,8 +104,11 @@
     },
     {
       "name": "linux",
-      "resolvePackageReferences": "on",
       "configurePreset": "linux"
+    },
+    {
+      "name": "linux-mingw",
+      "configurePreset": "linux-mingw"
     }
   ],
   "version": 4
