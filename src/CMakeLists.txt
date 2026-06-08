@@ -57,7 +57,7 @@ add_library(mo2::archive ALIAS mo2-archive)
 set_target_properties(mo2-archive PROPERTIES EXPORT_NAME archive)
 
 install(TARGETS mo2-archive EXPORT archiveTargets FILE_SET HEADERS)
-if (WIN32 AND NOT BUILD_STATIC)
+if (MSVC AND NOT BUILD_STATIC)
 	install(FILES $<TARGET_PDB_FILE:mo2-archive> DESTINATION pdb OPTIONAL)
 endif()
 install(EXPORT archiveTargets
