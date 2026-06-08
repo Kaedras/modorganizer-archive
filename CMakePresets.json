@@ -73,6 +73,10 @@
         "VCPKG_TARGET_TRIPLET": {
           "type": "STRING",
           "value": "x64-linux"
+        },
+        "BUILD_SHARED_LIBS": {
+          "type": "BOOL",
+          "value": "ON"
         }
       },
       "generator": "Ninja Multi-Config",
