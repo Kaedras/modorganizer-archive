@@ -285,9 +285,6 @@ bool ArchiveImpl::extract(std::filesystem::path const& outputDirectory,
     // Retrieve the list of indices we want to extract:
     vector<uint32_t> indices;
 
-    // whether to use simple extraction
-    bool allSimple = true;
-
     m_Total = 0;
 
     // used to look up FileData by path
@@ -296,16 +293,9 @@ bool ArchiveImpl::extract(std::filesystem::path const& outputDirectory,
     for (size_t i = 0; i < m_FileList.size(); ++i) {
       auto* fileData = dynamic_cast<FileDataImpl*>(m_FileList[i]);
       fileMap.emplace(to_tstring(fileData->getArchiveFilePath().native()), fileData);
-
       if (!fileData->isEmpty()) {
         indices.push_back(static_cast<uint32_t>(i));
-        const auto& outputs = fileData->getOutputFilePaths();
-        if (outputs.size() > 1 || outputs[0] != fileData->getArchiveFilePath()) {
-          allSimple = false;
-        }
         m_Total += fileData->getSize();
-      } else {
-        allSimple = false;
       }
     }
 
@@ -313,14 +303,6 @@ bool ArchiveImpl::extract(std::filesystem::path const& outputDirectory,
       m_ArchivePtr->setProgressCallback([this](uint64_t current) {
         return progressCallbackWrapper(current);
       });
-    }
-
-    if (allSimple) {
-      m_ArchivePtr->extractTo(to_tstring(outputDirectory.native()));
-      for (auto* fileData : m_FileList) {
-        fileData->clearOutputFilePaths();
-      }
-      return true;
     }
 
     // extract files
