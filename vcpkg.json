@@ -19,7 +19,7 @@
     "registries": [
       {
         "kind": "git",
-        "baseline": "9466d98b0c8aa37606969151d950e76c6867095c",
+        "baseline": "635984ac37180205d8573c3a89341c45d40a7301",
         "repository": "https://github.com/Kaedras/vcpkg-registry",
         "packages": [
           "7zip"
