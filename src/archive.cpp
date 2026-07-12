@@ -12,6 +12,7 @@
 
 using namespace bit7z;
 using namespace std;
+namespace fs = std::filesystem;
 
 namespace
 {
