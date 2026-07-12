@@ -74,8 +74,8 @@ TEST_P(ArchiveTest, Archive)
 
 INSTANTIATE_TEST_SUITE_P(Extract, ArchiveTest,
                          testing::Values("test.7z", "test_encrypted.7z",
-                                         "test_encrypted_headers.7z", "test.zip",
-                                         "test_encrypted.zip"));
+                                         "test_encrypted_headers.7z", "test.rar",
+                                         "test.zip", "test_encrypted.zip"));
 
 // INSTANTIATE_TEST_SUITE_P(ExtractNested, ArchiveTest,
 //                          testing::Values("test.tar.bz2",
