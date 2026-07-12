@@ -54,26 +54,27 @@ public:
         m_IsDirectory(isDirectory)
   {}
 
-  virtual std::filesystem::path getArchiveFilePath() const override
+  [[nodiscard]] std::filesystem::path getArchiveFilePath() const override
   {
     return m_FileName;
   }
-  virtual uint64_t getSize() const override { return m_Size; }
+  [[nodiscard]] uint64_t getSize() const override { return m_Size; }
 
-  virtual void addOutputFilePath(std::filesystem::path const& fileName) override
+  void addOutputFilePath(std::filesystem::path const& fileName) override
   {
     m_OutputFilePaths.push_back(fileName);
   }
-  virtual const std::vector<std::filesystem::path>& getOutputFilePaths() const override
+  [[nodiscard]] const std::vector<std::filesystem::path>&
+  getOutputFilePaths() const override
   {
     return m_OutputFilePaths;
   }
 
-  virtual void clearOutputFilePaths() override { m_OutputFilePaths.clear(); }
+  void clearOutputFilePaths() override { m_OutputFilePaths.clear(); }
 
-  bool isEmpty() const { return m_OutputFilePaths.empty(); }
-  virtual bool isDirectory() const override { return m_IsDirectory; }
-  virtual uint64_t getCRC() const override { return m_CRC; }
+  [[nodiscard]] bool isEmpty() const { return m_OutputFilePaths.empty(); }
+  [[nodiscard]] bool isDirectory() const override { return m_IsDirectory; }
+  [[nodiscard]] uint64_t getCRC() const override { return m_CRC; }
 
 private:
   std::filesystem::path m_FileName;
@@ -95,25 +96,27 @@ public:
   ArchiveImpl();
   ~ArchiveImpl() override;
 
-  bool isValid() const override { return m_Valid; }
+  [[nodiscard]] bool isValid() const override { return m_Valid; }
 
-  Error getLastError() const override { return m_LastError; }
-  virtual void setLogCallback(LogCallback logCallback) override
+  [[nodiscard]] Error getLastError() const override { return m_LastError; }
+  void setLogCallback(LogCallback logCallback) override
   {
     // Wrap the callback so that we do not have to check if it is set everywhere:
     m_LogCallback = logCallback ? logCallback : DefaultLogCallback;
   }
 
-  virtual bool open(std::filesystem::path const& archiveName,
-                    PasswordCallback passwordCallback) override;
-  virtual void close() override;
-  const std::vector<FileData*>& getFileList() const override { return m_FileList; }
-  virtual bool extract(std::filesystem::path const& outputDirectory,
-                       ProgressCallback progressCallback,
-                       FileChangeCallback fileChangeCallback,
-                       ErrorCallback errorCallback) override;
+  bool open(std::filesystem::path const& archiveName,
+            PasswordCallback passwordCallback) override;
+  void close() override;
+  [[nodiscard]] const std::vector<FileData*>& getFileList() const override
+  {
+    return m_FileList;
+  }
+  bool extract(std::filesystem::path const& outputDirectory,
+               ProgressCallback progressCallback, FileChangeCallback fileChangeCallback,
+               ErrorCallback errorCallback) override;
 
-  virtual void cancel() override;
+  void cancel() override;
 
 private:
   void clearFileList();
@@ -156,7 +159,7 @@ ArchiveImpl::ArchiveImpl()
       m_FileChangeType(FileChangeType::EXTRACTION_START)
 {
   // Reset the log callback:
-  setLogCallback({});
+  ArchiveImpl::setLogCallback({});
 
   // the default constructor would look for "7z.dll" on windows and
   // "/usr/lib/p7zip/7z.so" on linux
@@ -172,7 +175,7 @@ ArchiveImpl::ArchiveImpl()
 
 ArchiveImpl::~ArchiveImpl()
 {
-  close();
+  ArchiveImpl::close();
 }
 
 bool ArchiveImpl::open(std::filesystem::path const& archiveName,
@@ -326,7 +329,7 @@ bool ArchiveImpl::extract(std::filesystem::path const& outputDirectory,
         ofstream ofs(outputDirectory / outputFilePath, ios::binary | ios::trunc);
         try {
           ofs.exceptions(ios::failbit | ios::badbit);
-          ofs.write(reinterpret_cast<const char*>(data), size);
+          ofs.write(reinterpret_cast<const char*>(data), static_cast<streamsize>(size));
         } catch (const ios_base::failure& ex) {
           reportError(format(BIT7Z_STRING("Error writing to {}: {}"),
                              to_tstring((outputDirectory / outputFilePath).native()),
