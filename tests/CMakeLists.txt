@@ -27,6 +27,15 @@ if(WIN32)
             $<TARGET_FILE_DIR:archive-test>/dlls/7zip.dll
             COMMENT "Copy 7zip.dll"
     )
+else()
+    # copy lib7zip.so
+    find_package(7zip CONFIG REQUIRED)
+    add_custom_command(TARGET archive-test POST_BUILD
+            COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+            $<TARGET_FILE:7zip::7zip>
+            ${CMAKE_CURRENT_BINARY_DIR}/lib/lib7zip.so
+            COMMENT "Copy lib7zip.so"
+    )
 endif()
 
 include(GoogleTest)
