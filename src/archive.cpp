@@ -1,5 +1,6 @@
 #include "archive.h"
 
+#include <bit7z/bit7zlibraryloader.hpp>
 #include <bit7z/bitabstractarchivehandler.hpp>
 #include <bit7z/bitarchivereader.hpp>
 #include <bit7z/bitformat.hpp>
@@ -132,7 +133,7 @@ private:
   Error m_LastError;
   std::atomic<bool> m_shouldCancel = false;
 
-  unique_ptr<Bit7zLibrary> m_Library;
+  Bit7zLibraryLoader m_Library;
   unique_ptr<BitArchiveReader> m_ArchivePtr;
 
   ProgressType m_ProgressType;
@@ -154,22 +155,21 @@ Archive::LogCallback ArchiveImpl::DefaultLogCallback([](LogLevel,
                                                         native_string const&) {});
 
 ArchiveImpl::ArchiveImpl()
-    : m_Valid(false), m_LastError(Error::ERROR_NONE), m_Library(nullptr),
-      m_ArchivePtr(nullptr), m_ProgressType(ProgressType::EXTRACTION), m_Total(0),
+    : m_Valid(false), m_LastError(Error::ERROR_NONE), m_ArchivePtr(nullptr),
+      m_ProgressType(ProgressType::EXTRACTION), m_Total(0),
       m_FileChangeType(FileChangeType::EXTRACTION_START)
 {
   // Reset the log callback:
   ArchiveImpl::setLogCallback({});
 
-  // the default constructor would look for "7z.dll" on windows and
-  // "/usr/lib/p7zip/7z.so" on linux
-  try {
-    m_Library = make_unique<Bit7zLibrary>(getLibraryPath());
-    m_Valid   = true;
-  } catch (const BitException& ex) {
-    reportError(
-        format(BIT7Z_STRING("Could not find 7z library: {}"), to_tstring(ex.what())));
+  error_code ec;
+  m_Library.load(getLibraryPath(), ec);
+  if (ec) {
+    reportError(format(BIT7Z_STRING("Could not find 7z library: {}"),
+                       to_tstring(ec.message())));
     m_LastError = Error::ERROR_LIBRARY_NOT_FOUND;
+  } else {
+    m_Valid = true;
   }
 }
 
@@ -200,13 +200,13 @@ bool ArchiveImpl::open(std::filesystem::path const& archiveName,
   }
 
   try {
-    if (BitArchiveReader::isHeaderEncrypted(
-            *m_Library, to_tstring(archiveName.native()), BitFormat::Auto)) {
+    if (BitArchiveReader::isHeaderEncrypted(m_Library, to_tstring(archiveName.native()),
+                                            BitFormat::Auto)) {
       m_Password = passwordCallback();
     }
 
     m_ArchivePtr =
-        make_unique<BitArchiveReader>(*m_Library, to_tstring(archiveName.native()),
+        make_unique<BitArchiveReader>(m_Library, to_tstring(archiveName.native()),
                                       BitFormat::Auto, to_tstring(m_Password));
     m_PasswordCallback = passwordCallback;
     m_ArchivePtr->setPasswordCallback([this] {
