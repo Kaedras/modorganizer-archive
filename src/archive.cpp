@@ -23,7 +23,7 @@ tstring getLibraryPath()
 #ifdef __unix__
   if (getenv("APPIMAGE") != nullptr && getenv("APPDIR") != nullptr) {
     const fs::path appDir = getenv("APPDIR");
-    return (appDir / "lib/lib7zip.so").string();
+    return (appDir / "usr/lib/lib7zip.so").string();
   }
   // the system-installed 7z.so can be ABI incompatible with the vcpkg-installed one,
   // causing error messages like `invalid function`
