@@ -19,6 +19,8 @@ target_sources(mo2-archive
 
 target_include_directories(mo2-archive PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../include/archive)
 
+configure_file(version.rc.in version.rc)
+
 if (MSVC)
 	target_compile_options(mo2-archive
 		PRIVATE

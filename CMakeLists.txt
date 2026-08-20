@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(archive LANGUAGES CXX)
+project(archive LANGUAGES CXX VERSION 2.1.2)
 
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
@@ -22,17 +22,11 @@ configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.cmake.in
   NO_CHECK_REQUIRED_COMPONENTS_MACRO
 )
 
-file(READ "${CMAKE_CURRENT_SOURCE_DIR}/src/version.rc" archive_version)
-string(REGEX MATCH "#define VER_FILEVERSION[ \t]*([0-9]+),([0-9]+),([0-9]+)" _ ${archive_version})
-set(archive_version_major ${CMAKE_MATCH_1})
-set(archive_version_minor ${CMAKE_MATCH_2})
-set(archive_version_patch ${CMAKE_MATCH_3})
-
-message(STATUS "[MO2] Found version '${archive_version_major}.${archive_version_minor}.${archive_version_patch}'.")
+message(STATUS "[MO2] Found version '${archive_VERSION}'.")
 
 write_basic_package_version_file(
   "${CMAKE_CURRENT_BINARY_DIR}/mo2-archive-config-version.cmake"
-  VERSION "${archive_version_major}.${archive_version_minor}.${archive_version_patch}"
+  VERSION "${archive_VERSION}"
   COMPATIBILITY AnyNewerVersion
 )
 
