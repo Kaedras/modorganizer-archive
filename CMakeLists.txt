@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(archive LANGUAGES CXX VERSION 2.1.2)
+project(archive LANGUAGES CXX VERSION 2.1.3)
 
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
