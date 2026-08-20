@@ -13,13 +13,13 @@
   "vcpkg-configuration": {
     "default-registry": {
       "kind": "git",
-      "baseline": "f87344cac03158cbf1467264565f1fd36b382a24",
+      "baseline": "3adf66eb3e317606c615346489e71b79aae0303a",
       "repository": "https://github.com/Microsoft/vcpkg"
     },
     "registries": [
       {
         "kind": "git",
-        "baseline": "635984ac37180205d8573c3a89341c45d40a7301",
+        "baseline": "2f1542ecde048eae9a04668e5afb2eec57790c27",
         "repository": "https://github.com/Kaedras/vcpkg-registry",
         "packages": [
           "7zip"
